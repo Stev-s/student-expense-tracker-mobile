@@ -647,7 +647,10 @@ export default function HomeScreen() {
                 LOGOUT BUTTON
             ============================================= */}
             <Pressable
-              style={styles.logoutButton}
+              style={({ pressed }) => [
+                styles.logoutButton,
+                pressed && styles.logoutButtonPressed,
+              ]}
               onPress={handleLogout}
             >
               <Text style={styles.logoutButtonText}>
@@ -1744,6 +1747,14 @@ const styles =
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FECACA',
+    minWidth: 80, // Increased minWidth so it's a bigger tap target
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  logoutButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
 
   logoutButtonText: {
