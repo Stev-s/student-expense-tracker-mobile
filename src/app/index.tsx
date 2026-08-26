@@ -482,7 +482,7 @@ export default function HomeScreen() {
 
 
   // =====================================================
-  // LOGOUT
+  // LOGOUT (FIXED - Only ONE function now)
   // =====================================================
 
   const handleLogout = () => {
@@ -504,12 +504,16 @@ export default function HomeScreen() {
 
             try {
 
+              // Clear session
               await logout();
 
-              // =============================================
-              // NEW: DIRECTLY REDIRECT TO LOGIN AFTER LOGOUT
-              // =============================================
+              // Try Expo Router navigation
               router.replace('/login');
+
+              // THE FIX FOR WEB: Force a hard reload if we are on web
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+              }
 
             } catch (error) {
 
@@ -653,15 +657,12 @@ export default function HomeScreen() {
               ]}
               onPress={handleLogout}
             >
-              <Text style={styles.logoutButtonText}>
-                Logout
-              </Text>
+              <Text style={styles.logoutText}>Logout</Text>
             </Pressable>
 
           </View>
 
         </View>
-
 
         {/* =================================================
             BALANCE CARD
@@ -1737,7 +1738,7 @@ const styles =
 
 
   // ---------------------------------------------------
-  // LOGOUT BUTTON
+  // LOGOUT BUTTON (FIXED STYLES)
   // ---------------------------------------------------
 
   logoutButton: {
@@ -1747,7 +1748,7 @@ const styles =
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FECACA',
-    minWidth: 80, // Increased minWidth so it's a bigger tap target
+    minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1757,7 +1758,7 @@ const styles =
     transform: [{ scale: 0.98 }],
   },
 
-  logoutButtonText: {
+  logoutText: {
     color: '#DC2626',
     fontSize: 12,
     fontWeight: '700',
