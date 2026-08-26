@@ -36,7 +36,7 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigator() {
 
   const {
-    user,
+    token,
     loading,
   } = useAuth();
 
@@ -100,10 +100,10 @@ function RootNavigator() {
 
 
     // =================================================
-    // USER IS NOT LOGGED IN
+    // USER IS NOT LOGGED IN (CHECKING TOKEN INSTEAD OF USER)
     // =================================================
 
-    if (!user) {
+    if (!token) {
 
       // ------------------------------------------------
       // If user is on ANY protected page,
@@ -113,6 +113,11 @@ function RootNavigator() {
       if (!isPublicRoute) {
 
         router.replace("/login");
+
+        // Web fallback: Force hard reload
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
 
       }
 
@@ -136,7 +141,7 @@ function RootNavigator() {
     }
 
   }, [
-    user,
+    token,
     loading,
     segments,
     router,
@@ -284,4 +289,3 @@ export default function RootLayout() {
   );
 
 }
-
