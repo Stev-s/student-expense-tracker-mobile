@@ -208,6 +208,38 @@ export const AuthProvider = ({
 
 
   // ===================================================
+  // AUTO LOGOUT WHEN TOKEN EXPIRES (NEW!)
+  // ===================================================
+
+  useEffect(() => {
+    if (!token) return;
+
+    try {
+      // Decode the JWT token to get expiration time
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+
+      // Calculate time remaining
+      const timeRemaining = expiresAt - Date.now();
+
+      // Set a timer to automatically logout when expired
+      const timeout = setTimeout(() => {
+        // Clear everything and logout
+        logout();
+      }, timeRemaining);
+
+      // Cleanup timer if token changes
+      return () => clearTimeout(timeout);
+
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      // If token is invalid, force logout immediately
+      logout();
+    }
+  }, [token]);
+
+
+  // ===================================================
   // SET DARK MODE
   // ===================================================
 
@@ -401,7 +433,7 @@ export const AuthProvider = ({
 
 
   // ===================================================
-  // LOGOUT
+  // LOGOUT (FIXED FOR WEB)
   // ===================================================
 
   const logout = async () => {
@@ -440,6 +472,11 @@ export const AuthProvider = ({
       // ---------------------------------------------
 
       router.replace("/login");
+
+      // THE FIX: Force a hard reload on Web
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
 
     } catch (error) {
 
