@@ -208,34 +208,43 @@ export const AuthProvider = ({
 
 
   // ===================================================
-  // AUTO LOGOUT WHEN TOKEN EXPIRES (NEW!)
+  // AUTO LOGOUT - HEARTBEAT (Web Safe)
   // ===================================================
 
   useEffect(() => {
     if (!token) return;
 
-    try {
-      // Decode the JWT token to get expiration time
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+    const checkToken = () => {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiresAt = payload.exp * 1000;
 
-      // Calculate time remaining
-      const timeRemaining = expiresAt - Date.now();
+        if (Date.now() >= expiresAt) {
+          // Clear everything
+          AsyncStorage.removeItem("token");
+          AsyncStorage.removeItem("user");
+          setToken(null);
+          setUser(null);
 
-      // Set a timer to automatically logout when expired
-      const timeout = setTimeout(() => {
-        // Clear everything and logout
+          // Force Browser Reload (The ONLY thing that works on Web)
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          } else {
+            router.replace('/login'); // Native fallback
+          }
+        }
+      } catch (error) {
+        console.error("Invalid token");
         logout();
-      }, timeRemaining);
+      }
+    };
 
-      // Cleanup timer if token changes
-      return () => clearTimeout(timeout);
+    // Check immediately and then every second
+    checkToken();
+    const interval = setInterval(checkToken, 1000);
 
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      // If token is invalid, force logout immediately
-      logout();
-    }
+    // Cleanup interval when token changes or unmounts
+    return () => clearInterval(interval);
   }, [token]);
 
 
