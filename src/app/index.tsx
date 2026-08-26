@@ -482,53 +482,39 @@ export default function HomeScreen() {
 
 
   // =====================================================
-  // LOGOUT (FIXED - Only ONE function now)
+  // LOGOUT (FIXED FOR WEB)
   // =====================================================
 
   const handleLogout = () => {
+    // Force immediate logout on Web (No Alert needed)
+    if (typeof window !== 'undefined') {
+      logout();
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      window.location.href = '/login';
+      return;
+    }
 
+    // Native (Phone) logout with Alert
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Logout',
           style: 'destructive',
-
           onPress: async () => {
-
             try {
-
-              // Clear session
               await logout();
-
-              // Try Expo Router navigation
               router.replace('/login');
-
-              // THE FIX FOR WEB: Force a hard reload if we are on web
-              if (typeof window !== 'undefined') {
-                window.location.href = '/login';
-              }
-
             } catch (error) {
-
-              Alert.alert(
-                'Error',
-                'Unable to logout. Please try again.'
-              );
-
+              Alert.alert('Error', 'Unable to logout. Please try again.');
             }
-
           },
         },
       ]
     );
-
   };
 
 

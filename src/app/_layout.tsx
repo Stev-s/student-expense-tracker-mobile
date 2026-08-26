@@ -112,11 +112,11 @@ function RootNavigator() {
 
       if (!isPublicRoute) {
 
-        router.replace("/login");
-
-        // Web fallback
+        // Force a full page reload (Works 100% on Web)
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
+        } else {
+          router.replace("/login"); // Native fallback
         }
 
       }
@@ -136,7 +136,11 @@ function RootNavigator() {
 
     if (isPublicRoute) {
 
-      router.replace("/");
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      } else {
+        router.replace("/");
+      }
 
     }
 
