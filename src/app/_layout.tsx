@@ -100,7 +100,7 @@ function RootNavigator() {
 
 
     // =================================================
-    // USER IS NOT LOGGED IN (CHECKING TOKEN INSTEAD OF USER)
+    // USER IS NOT LOGGED IN (CHECKING TOKEN)
     // =================================================
 
     if (!token) {
@@ -114,7 +114,7 @@ function RootNavigator() {
 
         router.replace("/login");
 
-        // Web fallback: Force hard reload
+        // Web fallback
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
