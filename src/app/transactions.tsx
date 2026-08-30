@@ -47,7 +47,7 @@ export default function TransactionsScreen() {
   // THEME
   // ===================================================
 
-  const { colors, isDark } = useTheme();
+  const { colors, isDarkMode: isDark } = useTheme();
 
 
   // ===================================================
@@ -379,18 +379,48 @@ export default function TransactionsScreen() {
 
 
   // =====================================================
-  // DELETE TRANSACTION
+  // DELETE TRANSACTION (FIXED FOR WEB)
   // =====================================================
 
   const handleDelete =
-    (transaction: Transaction) => {
+    async (transaction: Transaction) => {
 
+      if (!token) {
+        return;
+      }
+
+      // WEB FIX: Use browser's native confirm() directly.
+      if (typeof window !== 'undefined') {
+        const isConfirmed = window.confirm(
+          `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`
+        );
+
+        if (isConfirmed) {
+          try {
+            setLoading(true);
+            const response = await deleteTransaction(token, transaction.id);
+
+            if (response.success) {
+              await loadTransactions();
+              window.alert("Transaction deleted successfully.");
+            } else {
+              window.alert(response.message || "Unable to delete transaction.");
+            }
+          } catch (error) {
+            console.error("Delete transaction error:", error);
+            window.alert(error instanceof Error ? error.message : "Unable to delete transaction.");
+          } finally {
+            setLoading(false);
+          }
+        }
+        return;
+      }
+
+      // NATIVE (Phone) FIX: Use Alert.
       Alert.alert(
         "Delete Transaction",
 
-        `Are you sure you want to delete this ${
-          transaction.type?.toLowerCase() || ""
-        } transaction?`,
+        `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`,
 
         [
           {
@@ -403,10 +433,6 @@ export default function TransactionsScreen() {
             style: "destructive",
 
             onPress: async () => {
-
-              if (!token) {
-                return;
-              }
 
               try {
 
@@ -629,7 +655,7 @@ export default function TransactionsScreen() {
             styles.loadingText,
             {
               color:
-                colors.textSecondary,
+                colors.secondaryText,
             },
           ]}
         >
@@ -739,7 +765,7 @@ export default function TransactionsScreen() {
                 styles.subtitle,
                 {
                   color:
-                    colors.textSecondary,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -909,7 +935,7 @@ export default function TransactionsScreen() {
                   styles.searchIcon,
                   {
                     color:
-                      colors.textSecondary,
+                      colors.secondaryText,
                   },
                 ]}
               >
@@ -931,7 +957,7 @@ export default function TransactionsScreen() {
                   "Search transactions..."
 
                 placeholderTextColor=
-                  {colors.textSecondary}
+                  {colors.secondaryText}
 
                 value={searchText}
 
@@ -1147,7 +1173,7 @@ export default function TransactionsScreen() {
                       color:
                         selectedType === "All"
                           ? "#FFFFFF"
-                          : colors.textSecondary,
+                          : colors.secondaryText,
                     },
                   ]}
                 >
@@ -1191,7 +1217,7 @@ export default function TransactionsScreen() {
                       color:
                         selectedType === "Income"
                           ? "#FFFFFF"
-                          : colors.textSecondary,
+                          : colors.secondaryText,
                     },
                   ]}
                 >
@@ -1235,7 +1261,7 @@ export default function TransactionsScreen() {
                       color:
                         selectedType === "Expense"
                           ? "#FFFFFF"
-                          : colors.textSecondary,
+                          : colors.secondaryText,
                     },
                   ]}
                 >
@@ -1281,7 +1307,7 @@ export default function TransactionsScreen() {
               placeholder="e.g. Food"
 
               placeholderTextColor=
-                {colors.textSecondary}
+                {colors.secondaryText}
 
               value={categoryFilter}
 
@@ -1326,7 +1352,7 @@ export default function TransactionsScreen() {
               placeholder="YYYY-MM-DD"
 
               placeholderTextColor=
-                {colors.textSecondary}
+                {colors.secondaryText}
 
               value={startDate}
 
@@ -1371,7 +1397,7 @@ export default function TransactionsScreen() {
               placeholder="YYYY-MM-DD"
 
               placeholderTextColor=
-                {colors.textSecondary}
+                {colors.secondaryText}
 
               value={endDate}
 
@@ -1519,7 +1545,7 @@ export default function TransactionsScreen() {
                 styles.listCount,
                 {
                   color:
-                    colors.textSecondary,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1594,7 +1620,7 @@ export default function TransactionsScreen() {
                 styles.emptyText,
                 {
                   color:
-                    colors.textSecondary,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1761,7 +1787,7 @@ export default function TransactionsScreen() {
                             styles.description,
                             {
                               color:
-                                colors.textSecondary,
+                                colors.secondaryText,
                             },
                           ]}
                         >
@@ -1777,7 +1803,7 @@ export default function TransactionsScreen() {
                             styles.date,
                             {
                               color:
-                                colors.textSecondary,
+                                colors.secondaryText,
                             },
                           ]}
                         >
