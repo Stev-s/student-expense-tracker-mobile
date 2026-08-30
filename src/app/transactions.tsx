@@ -44,7 +44,7 @@ export default function TransactionsScreen() {
 
 
   // ===================================================
-  // THEME
+  // THEME (FIXED)
   // ===================================================
 
   const { colors, isDarkMode: isDark } = useTheme();
@@ -382,114 +382,66 @@ export default function TransactionsScreen() {
   // DELETE TRANSACTION (FIXED FOR WEB)
   // =====================================================
 
-  const handleDelete =
-    async (transaction: Transaction) => {
+  const handleDelete = async (transaction: Transaction) => {
+    if (!token) return;
 
-      if (!token) {
-        return;
-      }
-
-      // WEB FIX: Use browser's native confirm() directly.
-      if (typeof window !== 'undefined') {
-        const isConfirmed = window.confirm(
-          `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`
-        );
-
-        if (isConfirmed) {
-          try {
-            setLoading(true);
-            const response = await deleteTransaction(token, transaction.id);
-
-            if (response.success) {
-              await loadTransactions();
-              window.alert("Transaction deleted successfully.");
-            } else {
-              window.alert(response.message || "Unable to delete transaction.");
-            }
-          } catch (error) {
-            console.error("Delete transaction error:", error);
-            window.alert(error instanceof Error ? error.message : "Unable to delete transaction.");
-          } finally {
-            setLoading(false);
-          }
-        }
-        return;
-      }
-
-      // NATIVE (Phone) FIX: Use Alert.
-      Alert.alert(
-        "Delete Transaction",
-
-        `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`,
-
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-
-          {
-            text: "Delete",
-            style: "destructive",
-
-            onPress: async () => {
-
-              try {
-
-                setLoading(true);
-
-                const response =
-                  await deleteTransaction(
-                    token,
-                    transaction.id
-                  );
-
-
-                if (response.success) {
-
-                  Alert.alert(
-                    "Success",
-                    "Transaction deleted successfully."
-                  );
-
-                  await loadTransactions();
-
-                } else {
-
-                  Alert.alert(
-                    "Error",
-                    response.message ||
-                      "Unable to delete transaction."
-                  );
-
-                }
-
-              } catch (error) {
-
-                console.error(
-                  "Delete transaction error:",
-                  error
-                );
-
-                Alert.alert(
-                  "Error",
-                  error instanceof Error
-                    ? error.message
-                    : "Unable to delete transaction."
-                );
-
-              } finally {
-
-                setLoading(false);
-
-              }
-
-            },
-          },
-        ]
+    // WEB FIX: Use browser's native confirm() directly.
+    if (typeof window !== 'undefined') {
+      const isConfirmed = window.confirm(
+        `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`
       );
 
-    };
+      if (isConfirmed) {
+        try {
+          setLoading(true);
+          const response = await deleteTransaction(token, transaction.id);
+
+          if (response.success) {
+            await loadTransactions();
+            window.alert("Transaction deleted successfully.");
+          } else {
+            window.alert(response.message || "Unable to delete transaction.");
+          }
+        } catch (error) {
+          console.error("Delete transaction error:", error);
+          window.alert(error instanceof Error ? error.message : "Unable to delete transaction.");
+        } finally {
+          setLoading(false);
+        }
+      }
+      return;
+    }
+
+    // NATIVE (Phone) FIX: Use Alert.
+    Alert.alert(
+      "Delete Transaction",
+      `Are you sure you want to delete this ${transaction.type?.toLowerCase() || ""} transaction?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await deleteTransaction(token, transaction.id);
+
+              if (response.success) {
+                await loadTransactions();
+                Alert.alert("Success", "Transaction deleted successfully.");
+              } else {
+                Alert.alert("Error", response.message || "Unable to delete transaction.");
+              }
+            } catch (error) {
+              Alert.alert("Error", error instanceof Error ? error.message : "Unable to delete transaction.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
 
   // =====================================================
