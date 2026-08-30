@@ -208,43 +208,57 @@ export const AuthProvider = ({
 
 
   // ===================================================
-  // AUTO LOGOUT - HEARTBEAT (Web Safe)
+  // IDLE AUTO-LOGOUT (Resets on user activity)
   // ===================================================
-
   useEffect(() => {
     if (!token) return;
 
-    const checkToken = () => {
+    // Set inactivity timeout (10 minutes in milliseconds)
+    const INACTIVITY_LIMIT = 10 * 60 * 1000; 
+
+    let logoutTimer: ReturnType<typeof setTimeout>;
+
+    // Function to trigger logout
+    const handleLogout = () => {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const expiresAt = payload.exp * 1000;
+        AsyncStorage.removeItem("token");
+        AsyncStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
 
-        if (Date.now() >= expiresAt) {
-          // Clear everything
-          AsyncStorage.removeItem("token");
-          AsyncStorage.removeItem("user");
-          setToken(null);
-          setUser(null);
-
-          // Force Browser Reload (The ONLY thing that works on Web)
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          } else {
-            router.replace('/login'); // Native fallback
-          }
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        } else {
+          router.replace('/login');
         }
       } catch (error) {
-        console.error("Invalid token");
-        logout();
+        console.error("Logout error:", error);
       }
     };
 
-    // Check immediately and then every second
-    checkToken();
-    const interval = setInterval(checkToken, 1000);
+    // Function to reset the timer
+    const resetTimer = () => {
+      if (logoutTimer) clearTimeout(logoutTimer);
+      logoutTimer = setTimeout(handleLogout, INACTIVITY_LIMIT);
+    };
 
-    // Cleanup interval when token changes or unmounts
-    return () => clearInterval(interval);
+    // Event listeners to detect user activity
+    const events = ['click', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+
+    events.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Start the initial timer
+    resetTimer();
+
+    // Cleanup event listeners on unmount
+    return () => {
+      if (logoutTimer) clearTimeout(logoutTimer);
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
   }, [token]);
 
 
