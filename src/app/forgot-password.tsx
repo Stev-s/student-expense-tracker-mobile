@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
     View,
     Text,
+    Platform,
     TextInput,
     TouchableOpacity,
     StyleSheet,
@@ -10,8 +11,9 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-const API_URL =
-    "http://192.168.172.147:5000/api";
+const API_URL = Platform.OS === "web"
+    ? "http://localhost:5000/api"
+    : "http://192.168.172.147:5000/api";
 
 export default function ForgotPasswordScreen() {
 

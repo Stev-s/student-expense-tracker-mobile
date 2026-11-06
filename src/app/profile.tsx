@@ -1,7 +1,11 @@
-import React from "react";
+
+import React, { useState } from "react";
 
 import {
+  ActivityIndicator,
   Alert,
+  Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,70 +14,240 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 import { useAuth } from "@/context/AuthContext";
-
 import { useTheme } from "@/context/ThemeContext";
-
+import { getFullImageUrl } from "@/services/api";
 
 // =====================================================
 // PROFILE SCREEN
 // =====================================================
 
 export default function ProfileScreen() {
-
-  // ===================================================
-  // AUTH
-  // ===================================================
-
   const {
     user,
     logout,
+    uploadProfilePicture,
   } = useAuth();
 
+  const { colors, isDarkMode } = useTheme();
+
+  const [uploadingPicture, setUploadingPicture] = useState(false);
 
   // ===================================================
-  // THEME
+  // USER INFORMATION
   // ===================================================
 
-  const {
-    colors,
-    isDarkMode,
-  } = useTheme();
-
-
-  // ===================================================
-  // USER DATA
-  // ===================================================
-
-  const fullName =
-    user?.full_name || "Student";
-
-  const email =
-    user?.email || "No email available";
-
-  const phone =
-    user?.phone || "Not provided";
-
-
-  // ===================================================
-  // USER INITIAL
-  // ===================================================
+  const fullName = user?.full_name || "Student";
+  const email = user?.email || "No email available";
+  const phone = user?.phone || "Not provided";
 
   const userInitial =
-    fullName
-      .trim()
-      .charAt(0)
-      .toUpperCase() || "S";
+    fullName.trim().charAt(0).toUpperCase() || "S";
 
+  const profileImage = getFullImageUrl(
+    user?.profile_picture
+  );
+
+  const accentBackground = isDarkMode ? "#1E3A5F" : "#EAF2FF";
+  const greenBackground = isDarkMode ? "#153B35" : "#E7F7F2";
+  const redBackground = isDarkMode ? "#3F2025" : "#FEF0F0";
+
+  // ===================================================
+  // UPLOAD SELECTED IMAGE
+  // ===================================================
+
+  const handleImageUpload = async (imageUri: string) => {
+    try {
+      setUploadingPicture(true);
+
+      await uploadProfilePicture(imageUri);
+
+      if (Platform.OS === "web") {
+        window.alert("Your profile picture has been updated successfully.");
+      } else {
+        Alert.alert(
+          "Success",
+          "Your profile picture has been updated successfully."
+        );
+      }
+    } catch (error: any) {
+      console.error("Profile picture upload error:", error);
+
+      const message =
+        error?.message || "Unable to upload your profile picture.";
+
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Upload Failed", message);
+      }
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  // ===================================================
+  // CHOOSE IMAGE FROM GALLERY
+  // ===================================================
+
+  const chooseFromGallery = async () => {
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        if (Platform.OS === "web") {
+          window.alert(
+            "Please allow access to your photos to select a profile picture."
+          );
+        } else {
+          Alert.alert(
+            "Permission Required",
+            "Please allow access to your photos to select a profile picture."
+          );
+        }
+
+        return;
+      }
+
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        await handleImageUpload(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Gallery error:", error);
+
+      if (Platform.OS === "web") {
+        window.alert("Unable to open your photo gallery.");
+      } else {
+        Alert.alert(
+          "Error",
+          "Unable to open your photo gallery."
+        );
+      }
+    }
+  };
+
+  // ===================================================
+  // TAKE PHOTO USING CAMERA
+  // ===================================================
+
+  const takePhoto = async () => {
+    try {
+      const permission =
+        await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please allow camera access to take your profile picture."
+        );
+
+        return;
+      }
+
+      const result =
+        await ImagePicker.launchCameraAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        await handleImageUpload(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+
+      Alert.alert(
+        "Camera Error",
+        "Unable to open the camera. Please try again."
+      );
+    }
+  };
+
+  // ===================================================
+  // SELECT PROFILE PICTURE OPTION
+  // ===================================================
+
+  const handleChangePicture = () => {
+    if (uploadingPicture) return;
+
+    if (Platform.OS === "web") {
+      void chooseFromGallery();
+      return;
+    }
+
+    Alert.alert(
+      "Profile Picture",
+      "Choose how you would like to add your picture.",
+      [
+        {
+          text: "Choose from Gallery",
+          onPress: () => {
+            void chooseFromGallery();
+          },
+        },
+        {
+          text: "Take a Photo",
+          onPress: () => {
+            void takePhoto();
+          },
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
 
   // ===================================================
   // LOGOUT
   // ===================================================
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const performLogout = async () => {
+      try {
+        await logout();
+        router.replace("/login");
+      } catch (error) {
+        console.error("Logout error:", error);
+
+        if (Platform.OS === "web") {
+          window.alert("Unable to logout. Please try again.");
+        } else {
+          Alert.alert(
+            "Logout Error",
+            "Unable to logout. Please try again."
+          );
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Are you sure you want to logout?"
+      );
+
+      if (confirmed) {
+        await performLogout();
+      }
+
+      return;
+    }
 
     Alert.alert(
       "Logout",
@@ -83,951 +257,863 @@ export default function ProfileScreen() {
           text: "Cancel",
           style: "cancel",
         },
-
         {
           text: "Logout",
           style: "destructive",
-
-          onPress: async () => {
-
-            try {
-
-              await logout();
-
-            } catch (error) {
-
-              console.error(
-                "Logout error:",
-                error
-              );
-
-              Alert.alert(
-                "Error",
-                "Unable to logout. Please try again."
-              );
-
-            }
-
+          onPress: () => {
+            void performLogout();
           },
         },
-      ]
+      ],
+      { cancelable: true }
     );
-
   };
 
+  // ===================================================
+  // INFORMATION ROW
+  // ===================================================
 
-  // =====================================================
-  // SCREEN
-  // =====================================================
-
-  return (
-
-    <SafeAreaView
+  const InfoRow = ({
+    icon,
+    label,
+    value,
+    iconColor,
+    backgroundColor,
+    last = false,
+  }: {
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    label: string;
+    value: string;
+    iconColor: string;
+    backgroundColor: string;
+    last?: boolean;
+  }) => (
+    <View
       style={[
-        styles.container,
-        {
-          backgroundColor:
-            colors.background,
+        styles.infoRow,
+        !last && {
+          borderBottomColor: colors.border,
+          borderBottomWidth: 1,
         },
       ]}
     >
-
-      <ScrollView
-        contentContainerStyle={
-          styles.scrollContent
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
+      <View
+        style={[
+          styles.infoIcon,
+          { backgroundColor },
+        ]}
       >
+        <MaterialCommunityIcons
+          name={icon}
+          size={21}
+          color={iconColor}
+        />
+      </View>
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
-        <View
-          style={styles.header}
+      <View style={styles.infoContent}>
+        <Text
+          style={[
+            styles.infoLabel,
+            { color: colors.mutedText },
+          ]}
         >
+          {label}
+        </Text>
 
+        <Text
+          style={[
+            styles.infoValue,
+            { color: colors.text },
+          ]}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // ===================================================
+  // ACCOUNT MENU ROW
+  // ===================================================
+
+  const AccountRow = ({
+    icon,
+    title,
+    description,
+    onPress,
+    iconColor,
+    backgroundColor,
+    last = false,
+  }: {
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    title: string;
+    description: string;
+    onPress: () => void;
+    iconColor: string;
+    backgroundColor: string;
+    last?: boolean;
+  }) => (
+    <Pressable
+      style={[
+        styles.accountRow,
+        !last && {
+          borderBottomColor: colors.border,
+          borderBottomWidth: 1,
+        },
+      ]}
+      onPress={onPress}
+    >
+      <View
+        style={[
+          styles.accountIcon,
+          { backgroundColor },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={icon}
+          size={22}
+          color={iconColor}
+        />
+      </View>
+
+      <View style={styles.accountContent}>
+        <Text
+          style={[
+            styles.accountTitle,
+            { color: colors.text },
+          ]}
+        >
+          {title}
+        </Text>
+
+        <Text
+          style={[
+            styles.accountDescription,
+            { color: colors.secondaryText },
+          ]}
+        >
+          {description}
+        </Text>
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={25}
+        color={colors.secondaryText}
+      />
+    </Pressable>
+  );
+
+  // ===================================================
+  // SCREEN
+  // ===================================================
+
+  return (
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* HEADER */}
+
+        <View style={styles.header}>
           <Pressable
             style={[
               styles.backButton,
               {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
-            onPress={() =>
-              router.back()
-            }
+            onPress={() => router.back()}
           >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={22}
+              color={colors.text}
+            />
+          </Pressable>
+
+          <View style={styles.headerTitleContainer}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
+              My Profile
+            </Text>
 
             <Text
               style={[
-                styles.backButtonText,
-                {
-                  color:
-                    colors.primary,
-                },
+                styles.headerSubtitle,
+                { color: colors.secondaryText },
               ]}
             >
-              ‹
+              Manage your personal account
             </Text>
+          </View>
 
-          </Pressable>
-
-
-          <Text
-            style={[
-              styles.headerTitle,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            Profile
-          </Text>
-
-
-          <View
-            style={
-              styles.headerSpace
-            }
-          />
-
+          <View style={styles.headerPlaceholder} />
         </View>
 
-
-        {/* =================================================
-            PROFILE CARD
-        ================================================= */}
+        {/* PROFILE CARD */}
 
         <View
           style={[
             styles.profileCard,
-            {
-              backgroundColor:
-                colors.card,
-
-              borderColor:
-                colors.border,
-            },
+            { backgroundColor: colors.primary },
           ]}
         >
+          <View style={styles.profileTop}>
 
-          <View
-            style={[
-              styles.profileCircle,
-              {
-                backgroundColor:
-                  colors.primary,
-              },
-            ]}
-          >
+            {/* PROFILE IMAGE */}
 
-            <Text
-              style={
-                styles.profileInitial
-              }
-            >
-              {userInitial}
-            </Text>
+            <View style={styles.avatarWrapper}>
+              <Pressable
+                style={styles.avatarContainer}
+                onPress={handleChangePicture}
+                disabled={uploadingPicture}
+              >
+                {uploadingPicture ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#FFFFFF"
+                  />
+                ) : profileImage ? (
+                  <Image
+                    key={profileImage}
+                    source={{ uri: profileImage }}
+                    style={styles.profileImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.profileInitial}>
+                    {userInitial}
+                  </Text>
+                )}
+              </Pressable>
 
+              {/* CAMERA BUTTON */}
+
+              <Pressable
+                style={styles.cameraButton}
+                onPress={handleChangePicture}
+                disabled={uploadingPicture}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={17}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+
+              <View style={styles.onlineIndicator} />
+            </View>
+
+            <View style={styles.profileTextContainer}>
+              <Text style={styles.profileGreeting}>
+                STUDENT ACCOUNT
+              </Text>
+
+              <Text style={styles.profileName}>
+                {fullName}
+              </Text>
+
+              <Text style={styles.profileEmail}>
+                {email}
+              </Text>
+
+              <Pressable
+                style={styles.changePictureButton}
+                onPress={handleChangePicture}
+                disabled={uploadingPicture}
+              >
+                {uploadingPicture ? (
+                  <ActivityIndicator
+                    size="small"
+                    color="#FFFFFF"
+                  />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="image-edit-outline"
+                      size={15}
+                      color="#FFFFFF"
+                    />
+
+                    <Text style={styles.changePictureText}>
+                      Change photo
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
 
+          <View style={styles.profileDivider} />
 
-          <Text
-            style={[
-              styles.profileName,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            {fullName}
-          </Text>
+          <View style={styles.profileFooter}>
+            <View style={styles.profileFooterItem}>
+              <MaterialCommunityIcons
+                name="shield-check"
+                size={17}
+                color="#D9F7ED"
+              />
 
+              <Text style={styles.profileFooterText}>
+                Personal account
+              </Text>
+            </View>
 
-          <Text
-            style={[
-              styles.profileEmail,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            {email}
-          </Text>
+            <Pressable
+              style={styles.editQuickButton}
+              onPress={() => router.push("/edit-profile")}
+            >
+              <Text style={styles.editQuickText}>
+                Edit
+              </Text>
 
+              <MaterialCommunityIcons
+                name="pencil"
+                size={14}
+                color="#FFFFFF"
+              />
+            </Pressable>
+          </View>
         </View>
 
+        {/* PERSONAL INFORMATION */}
 
-        {/* =================================================
-            PERSONAL INFORMATION
-        ================================================= */}
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text },
+              ]}
+            >
+              Personal Information
+            </Text>
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Personal Information
-        </Text>
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Your registered details
+            </Text>
+          </View>
 
+          <MaterialCommunityIcons
+            name="account-details-outline"
+            size={23}
+            color={colors.primary}
+          />
+        </View>
 
         <View
           style={[
             styles.infoCard,
             {
-              backgroundColor:
-                colors.card,
-
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
+          <InfoRow
+            icon="account-outline"
+            label="Full Name"
+            value={fullName}
+            iconColor={colors.primary}
+            backgroundColor={accentBackground}
+          />
 
-          {/* =================================================
-              FULL NAME
-          ================================================= */}
+          <InfoRow
+            icon="email-outline"
+            label="Email Address"
+            value={email}
+            iconColor="#16A085"
+            backgroundColor={greenBackground}
+          />
 
-          <View
-            style={[
-              styles.infoRow,
-              {
-                borderBottomColor:
-                  colors.border,
-              },
-            ]}
-          >
-
-            <View
-              style={[
-                styles.infoIcon,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.iconText
-                }
-              >
-                👤
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.infoContent
-              }
-            >
-
-              <Text
-                style={[
-                  styles.infoLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                Full Name
-              </Text>
-
-
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {fullName}
-              </Text>
-
-            </View>
-
-          </View>
-
-
-          {/* =================================================
-              EMAIL
-          ================================================= */}
-
-          <View
-            style={[
-              styles.infoRow,
-              {
-                borderBottomColor:
-                  colors.border,
-              },
-            ]}
-          >
-
-            <View
-              style={[
-                styles.infoIcon,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.iconText
-                }
-              >
-                ✉️
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.infoContent
-              }
-            >
-
-              <Text
-                style={[
-                  styles.infoLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                Email Address
-              </Text>
-
-
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {email}
-              </Text>
-
-            </View>
-
-          </View>
-
-
-          {/* =================================================
-              PHONE
-          ================================================= */}
-
-          <View
-            style={[
-              styles.infoRow,
-              styles.lastInfoRow,
-            ]}
-          >
-
-            <View
-              style={[
-                styles.infoIcon,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.iconText
-                }
-              >
-                📱
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.infoContent
-              }
-            >
-
-              <Text
-                style={[
-                  styles.infoLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                Phone Number
-              </Text>
-
-
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {phone}
-              </Text>
-
-            </View>
-
-          </View>
-
+          <InfoRow
+            icon="phone-outline"
+            label="Phone Number"
+            value={phone}
+            iconColor="#E76F51"
+            backgroundColor={redBackground}
+            last
+          />
         </View>
 
+        {/* ACCOUNT SETTINGS */}
 
-        {/* =================================================
-            ACCOUNT
-        ================================================= */}
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text },
+              ]}
+            >
+              Account
+            </Text>
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Account
-        </Text>
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Manage your account and preferences
+            </Text>
+          </View>
 
+          <MaterialCommunityIcons
+            name="cog-outline"
+            size={23}
+            color={colors.primary}
+          />
+        </View>
 
         <View
           style={[
             styles.accountCard,
             {
-              backgroundColor:
-                colors.card,
-
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
+          <AccountRow
+            icon="account-edit-outline"
+            title="Edit Profile"
+            description="Update your personal information"
+            onPress={() => router.push("/edit-profile")}
+            iconColor={colors.primary}
+            backgroundColor={accentBackground}
+          />
 
-          {/* =================================================
-              EDIT PROFILE
-          ================================================= */}
-
-          <Pressable
-            style={[
-              styles.accountRow,
-              {
-                borderBottomColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/edit-profile"
-              )
-            }
-          >
-
-            <View
-              style={[
-                styles.accountIcon,
-                {
-                  backgroundColor:
-                    isDarkMode
-                      ? "#1E3A5F"
-                      : "#EFF6FF",
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.iconText
-                }
-              >
-                ✏️
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.accountContent
-              }
-            >
-
-              <Text
-                style={[
-                  styles.accountTitle,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                Edit Profile
-              </Text>
-
-
-              <Text
-                style={[
-                  styles.accountDescription,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Update your personal information
-              </Text>
-
-            </View>
-
-
-            <Text
-              style={[
-                styles.arrow,
-                {
-                  color:
-                    colors.primary,
-                },
-              ]}
-            >
-              ›
-            </Text>
-
-          </Pressable>
-
-
-          {/* =================================================
-              SETTINGS
-          ================================================= */}
-
-          <Pressable
-            style={[
-              styles.accountRow,
-              styles.lastAccountRow,
-            ]}
-            onPress={() =>
-              router.push(
-                "/settings"
-              )
-            }
-          >
-
-            <View
-              style={[
-                styles.accountIcon,
-                {
-                  backgroundColor:
-                    isDarkMode
-                      ? "#1E3A5F"
-                      : "#EFF6FF",
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.iconText
-                }
-              >
-                ⚙️
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.accountContent
-              }
-            >
-
-              <Text
-                style={[
-                  styles.accountTitle,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                Settings
-              </Text>
-
-
-              <Text
-                style={[
-                  styles.accountDescription,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Manage your app preferences
-              </Text>
-
-            </View>
-
-
-            <Text
-              style={[
-                styles.arrow,
-                {
-                  color:
-                    colors.primary,
-                },
-              ]}
-            >
-              ›
-            </Text>
-
-          </Pressable>
-
+          <AccountRow
+            icon="cog-outline"
+            title="Settings"
+            description="Manage your app preferences"
+            onPress={() => router.push("/settings")}
+            iconColor="#16A085"
+            backgroundColor={greenBackground}
+            last
+          />
         </View>
 
-
-        {/* =================================================
-            LOGOUT
-        ================================================= */}
+        {/* LOGOUT */}
 
         <Pressable
           style={[
             styles.logoutButton,
             {
-              backgroundColor:
-                isDarkMode
-                  ? "#3F1D1D"
-                  : "#FEF2F2",
-
-              borderColor:
-                isDarkMode
-                  ? "#7F1D1D"
-                  : "#FECACA",
+              backgroundColor: redBackground,
+              borderColor: isDarkMode ? "#71333A" : "#FECACA",
             },
           ]}
-          onPress={
-            handleLogout
-          }
+          onPress={handleLogout}
         >
+          <View style={styles.logoutIcon}>
+            <MaterialCommunityIcons
+              name="logout"
+              size={20}
+              color={colors.danger}
+            />
+          </View>
 
           <Text
             style={[
               styles.logoutText,
-              {
-                color:
-                  colors.danger,
-              },
+              { color: colors.danger },
             ]}
           >
             Logout
           </Text>
 
+          <View style={styles.logoutSpacer} />
+
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={23}
+            color={colors.danger}
+          />
         </Pressable>
 
+        {/* FOOTER */}
 
-        <View
-          style={
-            styles.bottomSpace
-          }
-        />
+        <View style={styles.footer}>
+          <MaterialCommunityIcons
+            name="wallet-outline"
+            size={20}
+            color={colors.secondaryText}
+          />
+
+          <Text
+            style={[
+              styles.footerText,
+              { color: colors.secondaryText },
+            ]}
+          >
+            Student Expense Tracker
+          </Text>
+        </View>
 
       </ScrollView>
-
     </SafeAreaView>
-
   );
 }
-
 
 // =====================================================
 // STYLES
 // =====================================================
 
 const styles = StyleSheet.create({
-
-  // ===================================================
-  // CONTAINER
-  // ===================================================
-
   container: {
     flex: 1,
   },
 
-
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 45,
   },
 
-
-  // ===================================================
   // HEADER
-  // ===================================================
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 25,
   },
-
 
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    width: 43,
+    height: 43,
+    borderRadius: 14,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-
-  backButtonText: {
-    fontSize: 38,
-    lineHeight: 38,
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: 14,
   },
-
 
   headerTitle: {
     fontSize: 23,
     fontWeight: "800",
   },
 
-
-  headerSpace: {
-    width: 40,
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 3,
   },
 
+  headerPlaceholder: {
+    width: 12,
+  },
 
-  // ===================================================
   // PROFILE CARD
-  // ===================================================
 
   profileCard: {
-    borderRadius: 20,
-    padding: 25,
-    alignItems: "center",
-    borderWidth: 1,
-    marginBottom: 28,
+    borderRadius: 22,
+    padding: 21,
+    marginBottom: 30,
+    overflow: "hidden",
   },
 
+  profileTop: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-  profileCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+  // AVATAR
+
+  avatarWrapper: {
+    width: 82,
+    height: 82,
+    position: "relative",
+  },
+
+  avatarContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(255,255,255,0.19)",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 14,
+    overflow: "hidden",
   },
 
+  profileImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 38,
+  },
 
   profileInitial: {
     color: "#FFFFFF",
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: "800",
   },
 
+  cameraButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 3,
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    backgroundColor: "#16A085",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+
+  onlineIndicator: {
+    position: "absolute",
+    width: 12,
+    height: 12,
+    borderRadius: 7,
+    backgroundColor: "#35D39A",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    top: 2,
+    right: 7,
+  },
+
+  profileTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  profileGreeting: {
+    color: "#D9F7ED",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    marginBottom: 5,
+  },
 
   profileName: {
-    fontSize: 22,
+    color: "#FFFFFF",
+    fontSize: 19,
     fontWeight: "800",
   },
 
-
   profileEmail: {
-    fontSize: 14,
+    color: "#E1F1F0",
+    fontSize: 11,
     marginTop: 5,
   },
 
+  changePictureButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginTop: 9,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    minHeight: 27,
+  },
 
-  // ===================================================
-  // SECTION
-  // ===================================================
+  changePictureText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  profileDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.23)",
+    marginVertical: 18,
+  },
+
+  profileFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  profileFooterItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  profileFooterText: {
+    color: "#E1F1F0",
+    fontSize: 12,
+    marginLeft: 7,
+    fontWeight: "600",
+  },
+
+  editQuickButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 6,
+  },
+
+  editQuickText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // SECTION HEADERS
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 13,
+  },
 
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "800",
   },
 
+  sectionSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
+  },
 
-  // ===================================================
-  // INFORMATION
-  // ===================================================
+  // PERSONAL INFORMATION
 
   infoCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    marginBottom: 28,
+    paddingHorizontal: 15,
+    marginBottom: 29,
   },
-
 
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
-    borderBottomWidth: 1,
   },
-
-
-  lastInfoRow: {
-    borderBottomWidth: 0,
-  },
-
 
   infoIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
-    marginRight: 12,
+    justifyContent: "center",
+    marginRight: 13,
   },
-
-
-  iconText: {
-    fontSize: 19,
-  },
-
 
   infoContent: {
     flex: 1,
   },
 
-
   infoLabel: {
-    fontSize: 12,
-    marginBottom: 3,
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 5,
   },
-
 
   infoValue: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
   },
 
-
-  // ===================================================
-  // ACCOUNT
-  // ===================================================
+  // ACCOUNT CARD
 
   accountCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    marginBottom: 22,
+    paddingHorizontal: 15,
+    marginBottom: 23,
     overflow: "hidden",
   },
-
 
   accountRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 17,
   },
-
-
-  lastAccountRow: {
-    borderBottomWidth: 0,
-  },
-
 
   accountIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
-    marginRight: 12,
+    justifyContent: "center",
+    marginRight: 13,
   },
-
 
   accountContent: {
     flex: 1,
   },
 
-
   accountTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
   },
-
 
   accountDescription: {
-    fontSize: 12,
-    marginTop: 3,
+    fontSize: 11,
+    marginTop: 4,
   },
 
-
-  arrow: {
-    fontSize: 28,
-  },
-
-
-  // ===================================================
   // LOGOUT
-  // ===================================================
 
   logoutButton: {
-    height: 52,
-    borderRadius: 12,
+    flexDirection: "row",
+    height: 57,
+    borderRadius: 15,
     borderWidth: 1,
-    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 16,
   },
 
+  logoutIcon: {
+    marginRight: 12,
+  },
 
   logoutText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
   },
 
-
-  // ===================================================
-  // BOTTOM SPACE
-  // ===================================================
-
-  bottomSpace: {
-    height: 20,
+  logoutSpacer: {
+    flex: 1,
   },
 
+  // FOOTER
+
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 27,
+    gap: 7,
+  },
+
+  footerText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
 });
-

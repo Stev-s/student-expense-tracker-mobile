@@ -1,3 +1,4 @@
+
 import { apiRequest } from "./api";
 
 // =====================================================
@@ -18,7 +19,7 @@ export interface Budget {
 // =====================================================
 
 export interface BudgetData {
-  month: string;
+  month: string | number;
   year: number;
   budget_amount: number;
 }
@@ -41,6 +42,32 @@ export interface BudgetsResponse {
   success: boolean;
   budgets: Budget[];
   count?: number;
+}
+
+// =====================================================
+// CURRENT MONTH BUDGET ALERT INTERFACE
+// =====================================================
+
+export interface CurrentBudgetAlert {
+  level: "warning" | "exceeded";
+  title: string;
+  message: string;
+}
+
+export interface CurrentBudgetStatusResponse {
+  success: boolean;
+  has_budget: boolean;
+  message?: string;
+  budget?: {
+    id: number;
+    month: string;
+    year: number;
+    budget_amount: number;
+    total_expenses: number;
+    remaining: number;
+    percentage_used: number;
+  };
+  alert: CurrentBudgetAlert | null;
 }
 
 // =====================================================
@@ -119,6 +146,21 @@ export const deleteBudget = async (
 ): Promise<BudgetResponse> => {
   return await apiRequest(`/budgets/${id}`, {
     method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+// =====================================================
+// GET CURRENT MONTH BUDGET ALERT
+// =====================================================
+
+export const getCurrentBudgetAlert = async (
+  token: string
+): Promise<CurrentBudgetStatusResponse> => {
+  return await apiRequest("/budgets/alerts/current", {
+    method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },

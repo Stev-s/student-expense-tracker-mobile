@@ -21,11 +21,11 @@ import {
   useFocusEffect,
 } from "expo-router";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useAuth } from "@/context/AuthContext";
 
-import {
-  useTheme,
-} from "@/context/ThemeContext";
+import { useTheme } from "@/context/ThemeContext";
 
 import {
   getTransactions,
@@ -39,7 +39,7 @@ import {
 
 
 // =====================================================
-// REPORT PERIOD
+// TYPES
 // =====================================================
 
 type ReportPeriod =
@@ -47,11 +47,6 @@ type ReportPeriod =
   | "Last Month"
   | "This Year"
   | "All Time";
-
-
-// =====================================================
-// SIX MONTH DATA TYPE
-// =====================================================
 
 type MonthlyReport = {
   key: string;
@@ -63,21 +58,23 @@ type MonthlyReport = {
 
 
 // =====================================================
+// CONSTANTS
+// =====================================================
+
+const GREEN = "#16A085";
+const RED = "#E76F51";
+const PURPLE = "#8064D9";
+const BLUE = "#4361EE";
+const AMBER = "#E6A23C";
+
+
+// =====================================================
 // REPORT SCREEN
 // =====================================================
 
 export default function ReportsScreen() {
 
-  // ===================================================
-  // AUTH
-  // ===================================================
-
   const { token } = useAuth();
-
-
-  // ===================================================
-  // THEME
-  // ===================================================
 
   const {
     isDarkMode,
@@ -106,6 +103,21 @@ export default function ReportsScreen() {
 
 
   // ===================================================
+  // THEME COLORS
+  // ===================================================
+
+  const mutedBackground = isDarkMode
+    ? "#26364A"
+    : "#F1F5F9";
+
+  const subtleBorder = isDarkMode
+    ? "#34465C"
+    : "#E8EDF3";
+
+  const mutedText = colors.secondaryText;
+
+
+  // ===================================================
   // LOAD REPORT DATA
   // ===================================================
 
@@ -128,30 +140,20 @@ export default function ReportsScreen() {
         getBudgets(token),
       ]);
 
-
       if (transactionResponse.success) {
-
         setTransactions(
           transactionResponse.transactions || []
         );
-
       } else {
-
         setTransactions([]);
-
       }
 
-
       if (budgetResponse.success) {
-
         setBudgets(
           budgetResponse.budgets || []
         );
-
       } else {
-
         setBudgets([]);
-
       }
 
     } catch (error) {
@@ -179,22 +181,18 @@ export default function ReportsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-
       loadReports();
-
     }, [token])
   );
 
 
   // ===================================================
-  // REFRESH
+  // REFRESH REPORTS
   // ===================================================
 
   const refreshReports = async () => {
 
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     try {
 
@@ -208,22 +206,16 @@ export default function ReportsScreen() {
         getBudgets(token),
       ]);
 
-
       if (transactionResponse.success) {
-
         setTransactions(
           transactionResponse.transactions || []
         );
-
       }
 
-
       if (budgetResponse.success) {
-
         setBudgets(
           budgetResponse.budgets || []
         );
-
       }
 
     } catch (error) {
@@ -248,330 +240,221 @@ export default function ReportsScreen() {
 
   const now = new Date();
 
-  const currentMonth =
-    now.getMonth() + 1;
+  const currentMonth = now.getMonth() + 1;
 
-  const currentYear =
-    now.getFullYear();
+  const currentYear = now.getFullYear();
 
 
   // ===================================================
   // LAST MONTH
   // ===================================================
 
-  const lastMonthDate =
-    new Date(
-      currentYear,
-      currentMonth - 2,
-      1
-    );
+  const lastMonthDate = new Date(
+    currentYear,
+    currentMonth - 2,
+    1
+  );
 
-  const lastMonth =
-    lastMonthDate.getMonth() + 1;
+  const lastMonth = lastMonthDate.getMonth() + 1;
 
-  const lastMonthYear =
-    lastMonthDate.getFullYear();
+  const lastMonthYear = lastMonthDate.getFullYear();
 
 
   // ===================================================
   // FILTER TRANSACTIONS
   // ===================================================
 
-  const filteredTransactions =
-    useMemo(() => {
+  const filteredTransactions = useMemo(() => {
 
-      return transactions.filter(
-        (transaction) => {
+    return transactions.filter((transaction) => {
 
-          if (
-            period === "All Time"
-          ) {
+      if (period === "All Time") {
+        return true;
+      }
 
-            return true;
+      if (!transaction.transaction_date) {
+        return false;
+      }
 
-          }
-
-
-          if (
-            !transaction.transaction_date
-          ) {
-
-            return false;
-
-          }
-
-
-          const date =
-            new Date(
-              transaction.transaction_date
-            );
-
-
-          if (
-            Number.isNaN(
-              date.getTime()
-            )
-          ) {
-
-            return false;
-
-          }
-
-
-          const month =
-            date.getMonth() + 1;
-
-          const year =
-            date.getFullYear();
-
-
-          if (
-            period === "This Month"
-          ) {
-
-            return (
-              month === currentMonth &&
-              year === currentYear
-            );
-
-          }
-
-
-          if (
-            period === "Last Month"
-          ) {
-
-            return (
-              month === lastMonth &&
-              year === lastMonthYear
-            );
-
-          }
-
-
-          if (
-            period === "This Year"
-          ) {
-
-            return (
-              year === currentYear
-            );
-
-          }
-
-
-          return true;
-
-        }
+      const date = new Date(
+        transaction.transaction_date
       );
 
-    }, [
-      transactions,
-      period,
-      currentMonth,
-      currentYear,
-      lastMonth,
-      lastMonthYear,
-    ]);
+      if (Number.isNaN(date.getTime())) {
+        return false;
+      }
+
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+
+      if (period === "This Month") {
+        return (
+          month === currentMonth &&
+          year === currentYear
+        );
+      }
+
+      if (period === "Last Month") {
+        return (
+          month === lastMonth &&
+          year === lastMonthYear
+        );
+      }
+
+      if (period === "This Year") {
+        return year === currentYear;
+      }
+
+      return true;
+
+    });
+
+  }, [
+    transactions,
+    period,
+    currentMonth,
+    currentYear,
+    lastMonth,
+    lastMonthYear,
+  ]);
 
 
   // ===================================================
   // TOTAL INCOME
   // ===================================================
 
-  const totalIncome =
-    useMemo(() => {
+  const totalIncome = useMemo(() => {
 
-      return filteredTransactions.reduce(
-        (total, transaction) => {
+    return filteredTransactions.reduce(
+      (total, transaction) => {
 
-          if (
-            transaction.type !== "Income"
-          ) {
+        if (transaction.type !== "Income") {
+          return total;
+        }
 
-            return total;
+        return total + Number(
+          transaction.amount || 0
+        );
 
-          }
+      },
+      0
+    );
 
-          return (
-            total +
-            Number(
-              transaction.amount || 0
-            )
-          );
-
-        },
-        0
-      );
-
-    }, [filteredTransactions]);
+  }, [filteredTransactions]);
 
 
   // ===================================================
   // TOTAL EXPENSE
   // ===================================================
 
-  const totalExpense =
-    useMemo(() => {
+  const totalExpense = useMemo(() => {
 
-      return filteredTransactions.reduce(
-        (total, transaction) => {
+    return filteredTransactions.reduce(
+      (total, transaction) => {
 
-          if (
-            transaction.type !== "Expense"
-          ) {
-
-            return total;
-
-          }
-
-          return (
-            total +
-            Number(
-              transaction.amount || 0
-            )
-          );
-
-        },
-        0
-      );
-
-    }, [filteredTransactions]);
-
-
-  // ===================================================
-  // BALANCE
-  // ===================================================
-
-  const balance =
-    totalIncome -
-    totalExpense;
-
-
-  // ===================================================
-  // EXPENSE BY CATEGORY
-  // ===================================================
-
-  const expenseByCategory =
-    useMemo(() => {
-
-      const categoryMap:
-        Record<string, number> = {};
-
-
-      filteredTransactions.forEach(
-        (transaction) => {
-
-          if (
-            transaction.type !== "Expense"
-          ) {
-
-            return;
-
-          }
-
-
-          const category =
-            transaction.category_name ||
-            "Uncategorized";
-
-
-          const amount =
-            Number(
-              transaction.amount || 0
-            );
-
-
-          categoryMap[category] =
-            (
-              categoryMap[category] || 0
-            ) + amount;
-
+        if (transaction.type !== "Expense") {
+          return total;
         }
-      );
 
-
-      return Object.entries(
-        categoryMap
-      )
-        .map(
-          ([
-            category,
-            amount,
-          ]) => ({
-            category,
-            amount,
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.amount - a.amount
+        return total + Number(
+          transaction.amount || 0
         );
 
-    }, [filteredTransactions]);
+      },
+      0
+    );
+
+  }, [filteredTransactions]);
 
 
   // ===================================================
-  // INCOME BY CATEGORY
+  // BALANCE AND COUNTS
   // ===================================================
 
-  const incomeByCategory =
-    useMemo(() => {
+  const balance = totalIncome - totalExpense;
 
-      const categoryMap:
-        Record<string, number> = {};
+  const transactionCount =
+    filteredTransactions.length;
 
+  const incomeCount =
+    filteredTransactions.filter(
+      item => item.type === "Income"
+    ).length;
 
-      filteredTransactions.forEach(
-        (transaction) => {
+  const expenseCount =
+    filteredTransactions.filter(
+      item => item.type === "Expense"
+    ).length;
 
-          if (
-            transaction.type !== "Income"
-          ) {
-
-            return;
-
-          }
-
-
-          const category =
-            transaction.category_name ||
-            "Uncategorized";
+  const averageExpense =
+    expenseCount > 0
+      ? totalExpense / expenseCount
+      : 0;
 
 
-          const amount =
-            Number(
-              transaction.amount || 0
-            );
+  // ===================================================
+  // CURRENCY FORMAT
+  // ===================================================
+
+  const formatCurrency = (amount: number) => {
+
+    return Number(
+      amount || 0
+    ).toLocaleString("en-KE", {
+      maximumFractionDigits: 2,
+    });
+
+  };
 
 
-          categoryMap[category] =
-            (
-              categoryMap[category] || 0
-            ) + amount;
+  // ===================================================
+  // CATEGORY BREAKDOWN
+  // ===================================================
 
-        }
+  const getCategoryBreakdown = (
+    type: "Income" | "Expense"
+  ) => {
+
+    const categoryMap: Record<string, number> = {};
+
+    filteredTransactions.forEach((transaction) => {
+
+      if (transaction.type !== type) {
+        return;
+      }
+
+      const category =
+        transaction.category_name ||
+        "Uncategorized";
+
+      const amount = Number(
+        transaction.amount || 0
       );
 
+      categoryMap[category] =
+        (categoryMap[category] || 0) + amount;
 
-      return Object.entries(
-        categoryMap
-      )
-        .map(
-          ([
-            category,
-            amount,
-          ]) => ({
-            category,
-            amount,
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.amount - a.amount
-        );
+    });
 
-    }, [filteredTransactions]);
+    return Object.entries(categoryMap)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+  };
+
+
+  const expenseByCategory = useMemo(
+    () => getCategoryBreakdown("Expense"),
+    [filteredTransactions]
+  );
+
+  const incomeByCategory = useMemo(
+    () => getCategoryBreakdown("Income"),
+    [filteredTransactions]
+  );
 
 
   // ===================================================
@@ -585,326 +468,431 @@ export default function ReportsScreen() {
 
 
   // ===================================================
-  // TRANSACTION COUNT
-  // ===================================================
-
-  const transactionCount =
-    filteredTransactions.length;
-
-
-  // ===================================================
   // CURRENT MONTH BUDGET
   // ===================================================
 
-  const currentBudget =
-    budgets.find(
-      (budget) => {
+  const currentBudget = budgets.find((budget) => {
 
-        const budgetMonth =
-          Number(
-            budget.month
-          );
-
-        const budgetYear =
-          Number(
-            budget.year
-          );
-
-
-        return (
-          budgetMonth === currentMonth &&
-          budgetYear === currentYear
-        );
-
-      }
+    return (
+      Number(budget.month) === currentMonth &&
+      Number(budget.year) === currentYear
     );
 
+  });
 
-  // ===================================================
-  // BUDGET AMOUNT
-  // ===================================================
-
-  const budgetAmount =
-    currentBudget
-      ? Number(
-          currentBudget.budget_amount
-        ) || 0
-      : 0;
+  const budgetAmount = currentBudget
+    ? Number(currentBudget.budget_amount) || 0
+    : 0;
 
 
   // ===================================================
   // BUDGET PERCENTAGE
   // ===================================================
 
-  const budgetPercentage =
-    budgetAmount > 0
-      ? (
-          totalExpense /
-          budgetAmount
-        ) * 100
-      : 0;
+  const budgetPercentage = budgetAmount > 0
+    ? (totalExpense / budgetAmount) * 100
+    : 0;
 
+  const safeBudgetPercentage = Math.min(
+    Math.max(budgetPercentage, 0),
+    100
+  );
 
-  const safeBudgetPercentage =
-    Math.min(
-      Math.max(
-        budgetPercentage,
-        0
-      ),
-      100
-    );
+  const budgetDifference =
+    budgetAmount - totalExpense;
 
 
   // ===================================================
   // SIX MONTH REPORT
-  //
-  // IMPORTANT:
-  // This is calculated from REAL backend
-  // transaction data.
   // ===================================================
 
-  const sixMonthData =
-    useMemo<MonthlyReport[]>(() => {
+  const sixMonthData = useMemo<MonthlyReport[]>(() => {
 
-      const result: MonthlyReport[] = [];
+    const result: MonthlyReport[] = [];
 
+    for (let i = 5; i >= 0; i--) {
 
-      for (
-        let i = 5;
-        i >= 0;
-        i--
-      ) {
+      const date = new Date(
+        currentYear,
+        currentMonth - 1 - i,
+        1
+      );
 
-        const date =
-          new Date(
-            currentYear,
-            currentMonth - 1 - i,
-            1
-          );
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
 
+      const monthName = date.toLocaleString(
+        "en-US",
+        { month: "short" }
+      );
 
-        const month =
-          date.getMonth() + 1;
+      const fullMonth = date.toLocaleString(
+        "en-US",
+        {
+          month: "long",
+          year: "numeric",
+        }
+      );
 
-        const year =
-          date.getFullYear();
+      let income = 0;
+      let expense = 0;
 
+      transactions.forEach((transaction) => {
 
-        const monthName =
-          date.toLocaleString(
-            "en-US",
-            {
-              month: "short",
-            }
-          );
+        if (!transaction.transaction_date) {
+          return;
+        }
 
-
-        const fullMonth =
-          date.toLocaleString(
-            "en-US",
-            {
-              month: "long",
-              year: "numeric",
-            }
-          );
-
-
-        let income = 0;
-        let expense = 0;
-
-
-        transactions.forEach(
-          (transaction) => {
-
-            if (
-              !transaction.transaction_date
-            ) {
-
-              return;
-
-            }
-
-
-            const transactionDate =
-              new Date(
-                transaction.transaction_date
-              );
-
-
-            if (
-              Number.isNaN(
-                transactionDate.getTime()
-              )
-            ) {
-
-              return;
-
-            }
-
-
-            const transactionMonth =
-              transactionDate.getMonth() + 1;
-
-            const transactionYear =
-              transactionDate.getFullYear();
-
-
-            if (
-              transactionMonth !== month ||
-              transactionYear !== year
-            ) {
-
-              return;
-
-            }
-
-
-            const amount =
-              Number(
-                transaction.amount || 0
-              );
-
-
-            if (
-              transaction.type === "Income"
-            ) {
-
-              income += amount;
-
-            }
-
-
-            if (
-              transaction.type === "Expense"
-            ) {
-
-              expense += amount;
-
-            }
-
-          }
+        const transactionDate = new Date(
+          transaction.transaction_date
         );
 
+        if (
+          Number.isNaN(transactionDate.getTime())
+        ) {
+          return;
+        }
 
-        result.push({
-          key:
-            `${year}-${month}`,
-          month:
-            monthName,
-          fullMonth,
-          income,
-          expense,
-        });
+        const transactionMonth =
+          transactionDate.getMonth() + 1;
 
-      }
+        const transactionYear =
+          transactionDate.getFullYear();
 
+        if (
+          transactionMonth !== month ||
+          transactionYear !== year
+        ) {
+          return;
+        }
 
-      return result;
+        const amount = Number(
+          transaction.amount || 0
+        );
 
-    }, [
-      transactions,
-      currentMonth,
-      currentYear,
-    ]);
+        if (transaction.type === "Income") {
+          income += amount;
+        }
+
+        if (transaction.type === "Expense") {
+          expense += amount;
+        }
+
+      });
+
+      result.push({
+        key: `${year}-${month}`,
+        month: monthName,
+        fullMonth,
+        income,
+        expense,
+      });
+
+    }
+
+    return result;
+
+  }, [
+    transactions,
+    currentMonth,
+    currentYear,
+  ]);
 
 
   // ===================================================
   // SIX MONTH MAX VALUE
   // ===================================================
 
-  const sixMonthMax =
-    useMemo(() => {
+  const sixMonthMax = useMemo(() => {
 
-      let max = 0;
+    let max = 0;
 
+    sixMonthData.forEach((item) => {
 
-      sixMonthData.forEach(
-        (item) => {
-
-          max =
-            Math.max(
-              max,
-              item.income,
-              item.expense
-            );
-
-        }
+      max = Math.max(
+        max,
+        item.income,
+        item.expense
       );
 
+    });
 
-      return max;
+    return max;
 
-    }, [sixMonthData]);
-
-
-  // ===================================================
-  // CURRENT PERIOD INCOME VS EXPENSE
-  // ===================================================
-
-  const comparisonMax =
-    Math.max(
-      totalIncome,
-      totalExpense,
-      1
-    );
+  }, [sixMonthData]);
 
 
   // ===================================================
-  // FORMAT CURRENCY
+  // COMPARISON BAR MAX
   // ===================================================
 
-  const formatCurrency =
-    (amount: number) => {
-
-      return Number(
-        amount || 0
-      ).toLocaleString(
-        "en-KE"
-      );
-
-    };
+  const comparisonMax = Math.max(
+    totalIncome,
+    totalExpense,
+    1
+  );
 
 
   // ===================================================
-  // LOADING
+  // LOADING SCREEN
   // ===================================================
 
   if (loading) {
 
     return (
-
       <SafeAreaView
         style={[
           styles.loadingContainer,
           {
-            backgroundColor:
-              colors.background,
+            backgroundColor: colors.background,
           },
         ]}
       >
 
         <ActivityIndicator
           size="large"
-          color={colors.primary}
+          color={GREEN}
         />
 
         <Text
           style={[
             styles.loadingText,
-            {
-              color:
-                colors.secondaryText,
-            },
+            { color: colors.secondaryText },
           ]}
         >
-          Loading reports...
+          Preparing your financial reports...
         </Text>
 
       </SafeAreaView>
-
     );
 
   }
+
+
+  // ===================================================
+  // REUSABLE SECTION TITLE
+  // ===================================================
+
+  const SectionTitle = ({
+    title,
+    subtitle,
+  }: {
+    title: string;
+    subtitle?: string;
+  }) => (
+
+    <View style={styles.sectionHeading}>
+
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: colors.text },
+        ]}
+      >
+        {title}
+      </Text>
+
+      {subtitle && (
+        <Text
+          style={[
+            styles.sectionSubtitle,
+            { color: mutedText },
+          ]}
+        >
+          {subtitle}
+        </Text>
+      )}
+
+    </View>
+
+  );
+
+
+  // ===================================================
+  // REUSABLE EMPTY STATE
+  // ===================================================
+
+  const EmptyState = ({
+    message,
+  }: {
+    message: string;
+  }) => (
+
+    <View style={styles.emptyContainer}>
+
+      <View
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: mutedBackground },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="chart-box-outline"
+          size={30}
+          color={mutedText}
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.emptyText,
+          { color: mutedText },
+        ]}
+      >
+        {message}
+      </Text>
+
+    </View>
+
+  );
+
+
+  // ===================================================
+  // CATEGORY REPORT COMPONENT
+  // ===================================================
+
+  const CategoryReport = ({
+    items,
+    total,
+    type,
+  }: {
+    items: {
+      category: string;
+      amount: number;
+    }[];
+    total: number;
+    type: "Income" | "Expense";
+  }) => {
+
+    const mainColor =
+      type === "Income" ? GREEN : RED;
+
+    const categoryIcon =
+      type === "Income"
+        ? "cash-plus"
+        : "shopping-outline";
+
+    if (items.length === 0) {
+
+      return (
+        <EmptyState
+          message={`No ${type.toLowerCase()} transactions found for this period.`}
+        />
+      );
+
+    }
+
+    return (
+
+      <View>
+
+        {items.map((item, index) => {
+
+          const percentage = total > 0
+            ? (item.amount / total) * 100
+            : 0;
+
+          return (
+
+            <View
+              key={item.category}
+              style={styles.categoryItem}
+            >
+
+              <View style={styles.categoryTopRow}>
+
+                <View style={styles.categoryLeft}>
+
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      {
+                        backgroundColor:
+                          type === "Income"
+                            ? isDarkMode
+                              ? "#173E39"
+                              : "#E6F6F1"
+                            : isDarkMode
+                              ? "#49312E"
+                              : "#FCEDE9",
+                      },
+                    ]}
+                  >
+
+                    <MaterialCommunityIcons
+                      name={categoryIcon}
+                      size={19}
+                      color={mainColor}
+                    />
+
+                  </View>
+
+                  <View style={styles.categoryNameContainer}>
+
+                    <Text
+                      style={[
+                        styles.categoryName,
+                        { color: colors.text },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.category}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.categoryPercentage,
+                        { color: mutedText },
+                      ]}
+                    >
+                      {percentage.toFixed(1)}% of total
+                    </Text>
+
+                  </View>
+
+                </View>
+
+                <Text
+                  style={[
+                    styles.categoryAmount,
+                    { color: mainColor },
+                  ]}
+                >
+                  KSh {formatCurrency(item.amount)}
+                </Text>
+
+              </View>
+
+              <View
+                style={[
+                  styles.categoryTrack,
+                  { backgroundColor: mutedBackground },
+                ]}
+              >
+
+                <View
+                  style={[
+                    styles.categoryProgress,
+                    {
+                      width: `${percentage}%`,
+                      backgroundColor: mainColor,
+                    },
+                  ]}
+                />
+
+              </View>
+
+            </View>
+
+          );
+
+        })}
+
+      </View>
+
+    );
+
+  };
 
 
   // ===================================================
@@ -916,126 +904,121 @@ export default function ReportsScreen() {
     <SafeAreaView
       style={[
         styles.container,
-        {
-          backgroundColor:
-            colors.background,
-        },
+        { backgroundColor: colors.background },
       ]}
     >
 
       <ScrollView
-        contentContainerStyle={
-          styles.scrollContent
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={
-              refreshReports
-            }
-            tintColor={
-              colors.primary
-            }
+            onRefresh={refreshReports}
+            tintColor={GREEN}
           />
         }
       >
 
-
-        {/* =================================================
+        {/* =============================================
             HEADER
-        ================================================= */}
+        ============================================= */}
 
-        <View
-          style={styles.header}
-        >
+        <View style={styles.header}>
 
           <Pressable
             style={[
-              styles.backButtonContainer,
+              styles.backButton,
               {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
-            onPress={() =>
-              router.back()
-            }
+            onPress={() => router.back()}
           >
 
-            <Text
-              style={[
-                styles.backButton,
-                {
-                  color:
-                    colors.primary,
-                },
-              ]}
-            >
-              ‹
-            </Text>
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={29}
+              color={colors.text}
+            />
 
           </Pressable>
 
+          <View style={styles.headerTitleContainer}>
 
-          <Text
-            style={[
-              styles.title,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            Reports
-          </Text>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
+              Financial Reports
+            </Text>
 
+            <Text
+              style={[
+                styles.headerSubtitle,
+                { color: mutedText },
+              ]}
+            >
+              Understand your money better
+            </Text>
+
+          </View>
 
           <View
-            style={
-              styles.headerSpace
-            }
-          />
+            style={[
+              styles.headerIcon,
+              { backgroundColor: isDarkMode ? "#173E39" : "#E6F6F1" },
+            ]}
+          >
+
+            <MaterialCommunityIcons
+              name="chart-box-outline"
+              size={24}
+              color={GREEN}
+            />
+
+          </View>
 
         </View>
 
 
-        {/* =================================================
-            PERIOD FILTER
-        ================================================= */}
+        {/* =============================================
+            REPORT PERIOD
+        ============================================= */}
 
         <View
           style={[
             styles.periodCard,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
-          <Text
-            style={[
-              styles.periodTitle,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            Report Period
-          </Text>
+          <View style={styles.periodHeading}>
 
+            <MaterialCommunityIcons
+              name="calendar-range"
+              size={20}
+              color={GREEN}
+            />
 
-          <View
-            style={styles.periodRow}
-          >
+            <Text
+              style={[
+                styles.periodTitle,
+                { color: colors.text },
+              ]}
+            >
+              Report Period
+            </Text>
+
+          </View>
+
+          <View style={styles.periodRow}>
 
             {(
               [
@@ -1044,43 +1027,33 @@ export default function ReportsScreen() {
                 "This Year",
                 "All Time",
               ] as ReportPeriod[]
-            ).map(
-              (item) => (
+            ).map((item) => {
+
+              const selected = period === item;
+
+              return (
 
                 <Pressable
                   key={item}
                   style={[
                     styles.periodButton,
-
                     {
-                      backgroundColor:
-                        colors.iconBackground,
+                      backgroundColor: selected
+                        ? GREEN
+                        : mutedBackground,
                     },
-
-                    period === item &&
-                      {
-                        backgroundColor:
-                          colors.primary,
-                      },
                   ]}
-                  onPress={() =>
-                    setPeriod(item)
-                  }
+                  onPress={() => setPeriod(item)}
                 >
 
                   <Text
                     style={[
                       styles.periodButtonText,
                       {
-                        color:
-                          colors.secondaryText,
+                        color: selected
+                          ? "#FFFFFF"
+                          : mutedText,
                       },
-
-                      period === item &&
-                        {
-                          color:
-                            colors.white,
-                        },
                     ]}
                   >
                     {item}
@@ -1088,34 +1061,25 @@ export default function ReportsScreen() {
 
                 </Pressable>
 
-              )
-            )}
+              );
+
+            })}
 
           </View>
 
         </View>
 
 
-        {/* =================================================
+        {/* =============================================
             FINANCIAL SUMMARY
-        ================================================= */}
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Financial Summary
-        </Text>
+        <SectionTitle
+          title="Financial Summary"
+          subtitle={`Your performance for ${period.toLowerCase()}`}
+        />
 
-
-        <View
-          style={styles.summaryGrid}
-        >
+        <View style={styles.summaryGrid}>
 
           {/* INCOME */}
 
@@ -1123,87 +1087,67 @@ export default function ReportsScreen() {
             style={[
               styles.summaryCard,
               {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-                borderLeftColor:
-                  colors.success,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
           >
 
-            <Text
+            <View
               style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
+                styles.summaryIcon,
+                { backgroundColor: isDarkMode ? "#173E39" : "#E6F6F1" },
               ]}
             >
-              Income
+              <MaterialCommunityIcons
+                name="trending-up"
+                size={22}
+                color={GREEN}
+              />
+            </View>
+
+            <Text style={[styles.summaryLabel, { color: mutedText }]}>
+              Total Income
             </Text>
 
-            <Text
-              style={[
-                styles.summaryAmount,
-                {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              KSh{" "}
-              {formatCurrency(
-                totalIncome
-              )}
+            <Text style={[styles.summaryAmount, { color: GREEN }]}>
+              KSh {formatCurrency(totalIncome)}
             </Text>
 
           </View>
 
 
-          {/* EXPENSE */}
+          {/* EXPENSES */}
 
           <View
             style={[
               styles.summaryCard,
               {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-                borderLeftColor:
-                  colors.danger,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
           >
 
-            <Text
+            <View
               style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
+                styles.summaryIcon,
+                { backgroundColor: isDarkMode ? "#49312E" : "#FCEDE9" },
               ]}
             >
-              Expenses
+              <MaterialCommunityIcons
+                name="trending-down"
+                size={22}
+                color={RED}
+              />
+            </View>
+
+            <Text style={[styles.summaryLabel, { color: mutedText }]}>
+              Total Expenses
             </Text>
 
-            <Text
-              style={[
-                styles.summaryAmount,
-                {
-                  color:
-                    colors.danger,
-                },
-              ]}
-            >
-              KSh{" "}
-              {formatCurrency(
-                totalExpense
-              )}
+            <Text style={[styles.summaryAmount, { color: RED }]}>
+              KSh {formatCurrency(totalExpense)}
             </Text>
 
           </View>
@@ -1215,43 +1159,36 @@ export default function ReportsScreen() {
             style={[
               styles.summaryCard,
               {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-                borderLeftColor:
-                  colors.primary,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
           >
 
-            <Text
+            <View
               style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
+                styles.summaryIcon,
+                { backgroundColor: isDarkMode ? "#263D63" : "#EAF0FF" },
               ]}
             >
-              Balance
+              <MaterialCommunityIcons
+                name="wallet-outline"
+                size={22}
+                color={BLUE}
+              />
+            </View>
+
+            <Text style={[styles.summaryLabel, { color: mutedText }]}>
+              Net Balance
             </Text>
 
             <Text
               style={[
                 styles.summaryAmount,
-                {
-                  color:
-                    balance >= 0
-                      ? colors.success
-                      : colors.danger,
-                },
+                { color: balance >= 0 ? GREEN : RED },
               ]}
             >
-              KSh{" "}
-              {formatCurrency(
-                Math.abs(balance)
-              )}
+              {balance < 0 ? "-" : ""}KSh {formatCurrency(Math.abs(balance))}
             </Text>
 
           </View>
@@ -1263,37 +1200,30 @@ export default function ReportsScreen() {
             style={[
               styles.summaryCard,
               {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-                borderLeftColor:
-                  "#7C3AED",
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
           >
 
-            <Text
+            <View
               style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
+                styles.summaryIcon,
+                { backgroundColor: isDarkMode ? "#3A3157" : "#F0EBFF" },
               ]}
             >
+              <MaterialCommunityIcons
+                name="swap-horizontal"
+                size={22}
+                color={PURPLE}
+              />
+            </View>
+
+            <Text style={[styles.summaryLabel, { color: mutedText }]}>
               Transactions
             </Text>
 
-            <Text
-              style={[
-                styles.summaryAmount,
-                {
-                  color:
-                    colors.primary,
-                },
-              ]}
-            >
+            <Text style={[styles.summaryAmount, { color: colors.text }]}>
               {transactionCount}
             </Text>
 
@@ -1302,100 +1232,39 @@ export default function ReportsScreen() {
         </View>
 
 
-        {/* =================================================
-            INCOME VS EXPENSE
-        ================================================= */}
+        {/* =============================================
+            INCOME VS EXPENSES
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Income vs Expenses
-        </Text>
-
+        <SectionTitle
+          title="Income vs Expenses"
+          subtitle="Compare money received and money spent"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
-          <View
-            style={
-              styles.chartLegend
-            }
-          >
+          <View style={styles.legendRow}>
 
-            <View
-              style={
-                styles.legendItem
-              }
-            >
-
-              <View
-                style={[
-                  styles.legendDot,
-                  {
-                    backgroundColor:
-                      colors.success,
-                  },
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.legendText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: GREEN }]} />
+              <Text style={[styles.legendText, { color: mutedText }]}>
                 Income
               </Text>
-
             </View>
 
-
-            <View
-              style={
-                styles.legendItem
-              }
-            >
-
-              <View
-                style={[
-                  styles.legendDot,
-                  {
-                    backgroundColor:
-                      colors.danger,
-                  },
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.legendText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: RED }]} />
+              <Text style={[styles.legendText, { color: mutedText }]}>
                 Expenses
               </Text>
-
             </View>
 
           </View>
@@ -1403,55 +1272,24 @@ export default function ReportsScreen() {
 
           {/* INCOME BAR */}
 
-          <View
-            style={
-              styles.comparisonRow
-            }
-          >
+          <View style={styles.comparisonRow}>
 
-            <View
-              style={
-                styles.comparisonLabelRow
-              }
-            >
+            <View style={styles.comparisonHeading}>
 
-              <Text
-                style={[
-                  styles.comparisonLabel,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
+              <Text style={[styles.comparisonLabel, { color: colors.text }]}>
                 Income
               </Text>
 
-              <Text
-                style={[
-                  styles.comparisonAmount,
-                  {
-                    color:
-                      colors.success,
-                  },
-                ]}
-              >
-                KSh{" "}
-                {formatCurrency(
-                  totalIncome
-                )}
+              <Text style={[styles.comparisonValue, { color: GREEN }]}>
+                KSh {formatCurrency(totalIncome)}
               </Text>
 
             </View>
 
-
             <View
               style={[
                 styles.chartTrack,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
+                { backgroundColor: mutedBackground },
               ]}
             >
 
@@ -1459,16 +1297,8 @@ export default function ReportsScreen() {
                 style={[
                   styles.chartBar,
                   {
-                    width:
-                      `${Math.min(
-                        (
-                          totalIncome /
-                          comparisonMax
-                        ) * 100,
-                        100
-                      )}%`,
-                    backgroundColor:
-                      colors.success,
+                    width: `${(totalIncome / comparisonMax) * 100}%`,
+                    backgroundColor: GREEN,
                   },
                 ]}
               />
@@ -1480,55 +1310,24 @@ export default function ReportsScreen() {
 
           {/* EXPENSE BAR */}
 
-          <View
-            style={
-              styles.comparisonRow
-            }
-          >
+          <View style={styles.comparisonRow}>
 
-            <View
-              style={
-                styles.comparisonLabelRow
-              }
-            >
+            <View style={styles.comparisonHeading}>
 
-              <Text
-                style={[
-                  styles.comparisonLabel,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
+              <Text style={[styles.comparisonLabel, { color: colors.text }]}>
                 Expenses
               </Text>
 
-              <Text
-                style={[
-                  styles.comparisonAmount,
-                  {
-                    color:
-                      colors.danger,
-                  },
-                ]}
-              >
-                KSh{" "}
-                {formatCurrency(
-                  totalExpense
-                )}
+              <Text style={[styles.comparisonValue, { color: RED }]}>
+                KSh {formatCurrency(totalExpense)}
               </Text>
 
             </View>
 
-
             <View
               style={[
                 styles.chartTrack,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
+                { backgroundColor: mutedBackground },
               ]}
             >
 
@@ -1536,16 +1335,8 @@ export default function ReportsScreen() {
                 style={[
                   styles.chartBar,
                   {
-                    width:
-                      `${Math.min(
-                        (
-                          totalExpense /
-                          comparisonMax
-                        ) * 100,
-                        100
-                      )}%`,
-                    backgroundColor:
-                      colors.danger,
+                    width: `${(totalExpense / comparisonMax) * 100}%`,
+                    backgroundColor: RED,
                   },
                 ]}
               />
@@ -1554,753 +1345,274 @@ export default function ReportsScreen() {
 
           </View>
 
-
-          {totalIncome === 0 &&
-            totalExpense === 0 && (
-
-              <Text
-                style={[
-                  styles.emptyText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                No income or expense data
-                available for this period.
-              </Text>
-
-            )}
-
-        </View>
-
-
-        {/* =================================================
-            SIX MONTH COMPARISON
-        ================================================= */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Six-Month Income vs Expenses
-        </Text>
-
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
-        >
-
-          <View
-            style={
-              styles.chartLegend
-            }
-          >
-
-            <View
-              style={
-                styles.legendItem
-              }
-            >
-
-              <View
-                style={[
-                  styles.legendDot,
-                  {
-                    backgroundColor:
-                      colors.success,
-                  },
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.legendText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Income
-              </Text>
-
-            </View>
-
-
-            <View
-              style={
-                styles.legendItem
-              }
-            >
-
-              <View
-                style={[
-                  styles.legendDot,
-                  {
-                    backgroundColor:
-                      colors.danger,
-                  },
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.legendText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Expenses
-              </Text>
-
-            </View>
-
-          </View>
-
-
-          {sixMonthMax === 0 ? (
-
-            <Text
-              style={[
-                styles.emptyText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              No transaction data available
-              for the last six months.
-            </Text>
-
-          ) : (
-
-            <View
-              style={
-                styles.sixMonthChart
-              }
-            >
-
-              {sixMonthData.map(
-                (item) => {
-
-                  const incomeHeight =
-                    sixMonthMax > 0
-                      ? (
-                          item.income /
-                          sixMonthMax
-                        ) * 140
-                      : 0;
-
-
-                  const expenseHeight =
-                    sixMonthMax > 0
-                      ? (
-                          item.expense /
-                          sixMonthMax
-                        ) * 140
-                      : 0;
-
-
-                  return (
-
-                    <View
-                      key={item.key}
-                      style={
-                        styles.monthColumn
-                      }
-                    >
-
-                      {/* VALUES */}
-
-                      <View
-                        style={
-                          styles.monthBarsArea
-                        }
-                      >
-
-                        <View
-                          style={
-                            styles.barPair
-                          }
-                        >
-
-                          <View
-                            style={[
-                              styles.monthBar,
-                              {
-                                height:
-                                  Math.max(
-                                    incomeHeight,
-                                    item.income > 0
-                                      ? 4
-                                      : 0
-                                  ),
-                                backgroundColor:
-                                  colors.success,
-                              },
-                            ]}
-                          />
-
-                        </View>
-
-
-                        <View
-                          style={
-                            styles.barPair
-                          }
-                        >
-
-                          <View
-                            style={[
-                              styles.monthBar,
-                              {
-                                height:
-                                  Math.max(
-                                    expenseHeight,
-                                    item.expense > 0
-                                      ? 4
-                                      : 0
-                                  ),
-                                backgroundColor:
-                                  colors.danger,
-                              },
-                            ]}
-                          />
-
-                        </View>
-
-                      </View>
-
-
-                      {/* MONTH */}
-
-                      <Text
-                        style={[
-                          styles.monthLabel,
-                          {
-                            color:
-                              colors.secondaryText,
-                          },
-                        ]}
-                      >
-                        {item.month}
-                      </Text>
-
-
-                      {/* TOTALS */}
-
-                      <Text
-                        style={[
-                          styles.monthIncomeValue,
-                          {
-                            color:
-                              colors.success,
-                          },
-                        ]}
-                      >
-                        {item.income > 0
-                          ? `${(
-                              item.income / 1000
-                            ).toFixed(1)}k`
-                          : "-"}
-                      </Text>
-
-
-                      <Text
-                        style={[
-                          styles.monthExpenseValue,
-                          {
-                            color:
-                              colors.danger,
-                          },
-                        ]}
-                      >
-                        {item.expense > 0
-                          ? `${(
-                              item.expense / 1000
-                            ).toFixed(1)}k`
-                          : "-"}
-                      </Text>
-
-                    </View>
-
-                  );
-
-                }
-              )}
-
-            </View>
-
+          {totalIncome === 0 && totalExpense === 0 && (
+            <EmptyState message="No income or expense data available for this period." />
           )}
 
         </View>
 
 
-        {/* =================================================
-            TOP SPENDING
-        ================================================= */}
+        {/* =============================================
+            SIX MONTH CHART
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Spending Overview
-        </Text>
-
+        <SectionTitle
+          title="Six-Month Overview"
+          subtitle="Your income and expenses over the last six months"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+
+          <View style={styles.legendRow}>
+
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: GREEN }]} />
+              <Text style={[styles.legendText, { color: mutedText }]}>
+                Income
+              </Text>
+            </View>
+
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: RED }]} />
+              <Text style={[styles.legendText, { color: mutedText }]}>
+                Expenses
+              </Text>
+            </View>
+
+          </View>
+
+          {sixMonthMax === 0 ? (
+
+            <EmptyState message="No transaction data available for the last six months." />
+
+          ) : (
+
+            <View style={styles.sixMonthChart}>
+
+              {sixMonthData.map((item) => {
+
+                const incomeHeight =
+                  (item.income / sixMonthMax) * 145;
+
+                const expenseHeight =
+                  (item.expense / sixMonthMax) * 145;
+
+                return (
+
+                  <View
+                    key={item.key}
+                    style={styles.monthColumn}
+                  >
+
+                    <View style={styles.monthBarsArea}>
+
+                      <View style={styles.barPair}>
+
+                        <View
+                          style={[
+                            styles.monthBar,
+                            {
+                              height: item.income > 0
+                                ? Math.max(incomeHeight, 4)
+                                : 0,
+                              backgroundColor: GREEN,
+                            },
+                          ]}
+                        />
+
+                      </View>
+
+                      <View style={styles.barPair}>
+
+                        <View
+                          style={[
+                            styles.monthBar,
+                            {
+                              height: item.expense > 0
+                                ? Math.max(expenseHeight, 4)
+                                : 0,
+                              backgroundColor: RED,
+                            },
+                          ]}
+                        />
+
+                      </View>
+
+                    </View>
+
+                    <Text style={[styles.monthLabel, { color: colors.text }]}>
+                      {item.month}
+                    </Text>
+
+                  </View>
+
+                );
+
+              })}
+
+            </View>
+
+          )}
+
+          <View style={[styles.chartNote, { borderTopColor: subtleBorder }]}>
+
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={15}
+              color={mutedText}
+            />
+
+            <Text style={[styles.chartNoteText, { color: mutedText }]}>
+              Bar heights represent actual recorded transaction amounts.
+            </Text>
+
+          </View>
+
+        </View>
+
+
+        {/* =============================================
+            SPENDING OVERVIEW
+        ============================================= */}
+
+        <SectionTitle
+          title="Spending Overview"
+          subtitle="Identify where most of your money goes"
+        />
+
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
           {highestExpenseCategory ? (
 
-            <>
-
-              <Text
-                style={[
-                  styles.cardSubtitle,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Highest spending category
-              </Text>
-
+            <View style={styles.highestCategory}>
 
               <View
-                style={
-                  styles.highestCategoryRow
-                }
+                style={[
+                  styles.highestIcon,
+                  { backgroundColor: isDarkMode ? "#49312E" : "#FCEDE9" },
+                ]}
               >
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  size={25}
+                  color={RED}
+                />
+              </View>
 
-                <Text
-                  style={[
-                    styles.highestCategoryName,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                >
-                  {
-                    highestExpenseCategory.category
-                  }
+              <View style={styles.highestInfo}>
+
+                <Text style={[styles.highestLabel, { color: mutedText }]}>
+                  Highest spending category
                 </Text>
 
-
-                <Text
-                  style={[
-                    styles.highestCategoryAmount,
-                    {
-                      color:
-                        colors.danger,
-                    },
-                  ]}
-                >
-                  KSh{" "}
-                  {formatCurrency(
-                    highestExpenseCategory.amount
-                  )}
+                <Text style={[styles.highestName, { color: colors.text }]}>
+                  {highestExpenseCategory.category}
                 </Text>
 
               </View>
 
-            </>
+              <Text style={[styles.highestAmount, { color: RED }]}>
+                KSh {formatCurrency(highestExpenseCategory.amount)}
+              </Text>
+
+            </View>
 
           ) : (
 
-            <Text
-              style={[
-                styles.emptyText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              No expense data available
-              for this period.
-            </Text>
+            <EmptyState message="No expense data available for this period." />
 
           )}
 
         </View>
 
 
-        {/* =================================================
+        {/* =============================================
             EXPENSE BY CATEGORY
-        ================================================= */}
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Expenses by Category
-        </Text>
-
+        <SectionTitle
+          title="Expenses by Category"
+          subtitle="Breakdown of your spending"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
-          {expenseByCategory.length === 0 ? (
-
-            <Text
-              style={[
-                styles.emptyText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              No expense transactions
-              found for this period.
-            </Text>
-
-          ) : (
-
-            expenseByCategory.map(
-              (item) => {
-
-                const percentage =
-                  totalExpense > 0
-                    ? (
-                        item.amount /
-                        totalExpense
-                      ) * 100
-                    : 0;
-
-
-                return (
-
-                  <View
-                    key={
-                      item.category
-                    }
-                    style={
-                      styles.categoryRow
-                    }
-                  >
-
-                    <View
-                      style={
-                        styles.categoryHeader
-                      }
-                    >
-
-                      <Text
-                        style={[
-                          styles.categoryName,
-                          {
-                            color:
-                              colors.text,
-                          },
-                        ]}
-                      >
-                        {item.category}
-                      </Text>
-
-
-                      <Text
-                        style={[
-                          styles.categoryAmount,
-                          {
-                            color:
-                              colors.danger,
-                          },
-                        ]}
-                      >
-                        KSh{" "}
-                        {formatCurrency(
-                          item.amount
-                        )}
-                      </Text>
-
-                    </View>
-
-
-                    <View
-                      style={[
-                        styles.barBackground,
-                        {
-                          backgroundColor:
-                            colors.iconBackground,
-                        },
-                      ]}
-                    >
-
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            width:
-                              `${percentage}%`,
-                            backgroundColor:
-                              colors.danger,
-                          },
-                        ]}
-                      />
-
-                    </View>
-
-
-                    <Text
-                      style={[
-                        styles.percentageText,
-                        {
-                          color:
-                            colors.secondaryText,
-                        },
-                      ]}
-                    >
-                      {Math.round(
-                        percentage
-                      )}
-                      %
-                    </Text>
-
-                  </View>
-
-                );
-
-              }
-            )
-
-          )}
+          <CategoryReport
+            items={expenseByCategory}
+            total={totalExpense}
+            type="Expense"
+          />
 
         </View>
 
 
-        {/* =================================================
+        {/* =============================================
             INCOME BY CATEGORY
-        ================================================= */}
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Income by Category
-        </Text>
-
+        <SectionTitle
+          title="Income by Category"
+          subtitle="Where your money comes from"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
-          {incomeByCategory.length === 0 ? (
-
-            <Text
-              style={[
-                styles.emptyText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              No income transactions
-              found for this period.
-            </Text>
-
-          ) : (
-
-            incomeByCategory.map(
-              (item) => {
-
-                const percentage =
-                  totalIncome > 0
-                    ? (
-                        item.amount /
-                        totalIncome
-                      ) * 100
-                    : 0;
-
-
-                return (
-
-                  <View
-                    key={
-                      item.category
-                    }
-                    style={
-                      styles.categoryRow
-                    }
-                  >
-
-                    <View
-                      style={
-                        styles.categoryHeader
-                      }
-                    >
-
-                      <Text
-                        style={[
-                          styles.categoryName,
-                          {
-                            color:
-                              colors.text,
-                          },
-                        ]}
-                      >
-                        {item.category}
-                      </Text>
-
-
-                      <Text
-                        style={[
-                          styles.incomeCategoryAmount,
-                          {
-                            color:
-                              colors.success,
-                          },
-                        ]}
-                      >
-                        KSh{" "}
-                        {formatCurrency(
-                          item.amount
-                        )}
-                      </Text>
-
-                    </View>
-
-
-                    <View
-                      style={[
-                        styles.barBackground,
-                        {
-                          backgroundColor:
-                            colors.iconBackground,
-                        },
-                      ]}
-                    >
-
-                      <View
-                        style={[
-                          styles.incomeBar,
-                          {
-                            width:
-                              `${percentage}%`,
-                            backgroundColor:
-                              colors.success,
-                          },
-                        ]}
-                      />
-
-                    </View>
-
-
-                    <Text
-                      style={[
-                        styles.percentageText,
-                        {
-                          color:
-                            colors.secondaryText,
-                        },
-                      ]}
-                    >
-                      {Math.round(
-                        percentage
-                      )}
-                      %
-                    </Text>
-
-                  </View>
-
-                );
-
-              }
-            )
-
-          )}
+          <CategoryReport
+            items={incomeByCategory}
+            total={totalIncome}
+            type="Income"
+          />
 
         </View>
 
 
-        {/* =================================================
+        {/* =============================================
             BUDGET VS SPENDING
-        ================================================= */}
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Budget vs Spending
-        </Text>
-
+        <SectionTitle
+          title="Budget vs Spending"
+          subtitle="Monitor your monthly spending limit"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
@@ -2309,80 +1621,38 @@ export default function ReportsScreen() {
 
             <>
 
-              <View
-                style={
-                  styles.budgetHeader
-                }
-              >
+              <View style={styles.budgetHeader}>
 
                 <View>
 
-                  <Text
-                    style={[
-                      styles.budgetLabel,
-                      {
-                        color:
-                          colors.secondaryText,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.budgetLabel, { color: mutedText }]}>
                     Monthly Budget
                   </Text>
 
-                  <Text
-                    style={[
-                      styles.budgetValue,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                  >
-                    KSh{" "}
-                    {formatCurrency(
-                      budgetAmount
-                    )}
+                  <Text style={[styles.budgetValue, { color: colors.text }]}>
+                    KSh {formatCurrency(budgetAmount)}
                   </Text>
 
                 </View>
 
-
-                <View
-                  style={
-                    styles.budgetRight
-                  }
-                >
+                <View style={styles.budgetPercentageContainer}>
 
                   <Text
                     style={[
-                      budgetPercentage > 100
-                        ? styles.overBudgetText
-                        : styles.budgetPercentage,
+                      styles.budgetPercentage,
                       {
-                        color:
-                          budgetPercentage > 100
-                            ? colors.danger
-                            : budgetPercentage >= 80
-                            ? colors.warning
-                            : colors.primary,
+                        color: budgetPercentage > 100
+                          ? RED
+                          : budgetPercentage >= 80
+                            ? AMBER
+                            : GREEN,
                       },
                     ]}
                   >
-                    {Math.round(
-                      budgetPercentage
-                    )}
-                    %
+                    {Math.round(budgetPercentage)}%
                   </Text>
 
-                  <Text
-                    style={[
-                      styles.budgetSpentLabel,
-                      {
-                        color:
-                          colors.secondaryText,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.budgetUsed, { color: mutedText }]}>
                     used
                   </Text>
 
@@ -2393,11 +1663,8 @@ export default function ReportsScreen() {
 
               <View
                 style={[
-                  styles.budgetProgressBackground,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
+                  styles.budgetTrack,
+                  { backgroundColor: mutedBackground },
                 ]}
               >
 
@@ -2405,14 +1672,12 @@ export default function ReportsScreen() {
                   style={[
                     styles.budgetProgress,
                     {
-                      width:
-                        `${safeBudgetPercentage}%`,
-                      backgroundColor:
-                        budgetPercentage > 100
-                          ? colors.danger
-                          : budgetPercentage >= 80
-                          ? colors.warning
-                          : colors.primary,
+                      width: `${safeBudgetPercentage}%`,
+                      backgroundColor: budgetPercentage > 100
+                        ? RED
+                        : budgetPercentage >= 80
+                          ? AMBER
+                          : GREEN,
                     },
                   ]}
                 />
@@ -2420,56 +1685,36 @@ export default function ReportsScreen() {
               </View>
 
 
-              <View
-                style={
-                  styles.budgetFooter
-                }
-              >
+              <View style={styles.budgetFooter}>
 
-                <Text
-                  style={[
-                    styles.budgetSpent,
-                    {
-                      color:
-                        colors.secondaryText,
-                    },
-                  ]}
-                >
-                  Spent: KSh{" "}
-                  {formatCurrency(
-                    totalExpense
-                  )}
-                </Text>
+                <View>
 
+                  <Text style={[styles.budgetFooterLabel, { color: mutedText }]}>
+                    Actual spending
+                  </Text>
 
-                <Text
-                  style={[
-                    budgetAmount -
-                      totalExpense >= 0
-                      ? styles.remainingText
-                      : styles.overBudgetText,
-                    {
-                      color:
-                        budgetAmount -
-                          totalExpense >= 0
-                          ? colors.success
-                          : colors.danger,
-                    },
-                  ]}
-                >
-                  {budgetAmount -
-                    totalExpense >= 0
-                    ? `Remaining: KSh ${formatCurrency(
-                        budgetAmount -
-                          totalExpense
-                      )}`
-                    : `Over: KSh ${formatCurrency(
-                        Math.abs(
-                          budgetAmount -
-                            totalExpense
-                        )
-                      )}`}
-                </Text>
+                  <Text style={[styles.budgetFooterValue, { color: RED }]}>
+                    KSh {formatCurrency(totalExpense)}
+                  </Text>
+
+                </View>
+
+                <View style={styles.budgetRemaining}>
+
+                  <Text style={[styles.budgetFooterLabel, { color: mutedText }]}>
+                    {budgetDifference >= 0 ? "Remaining" : "Over budget"}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.budgetFooterValue,
+                      { color: budgetDifference >= 0 ? GREEN : RED },
+                    ]}
+                  >
+                    KSh {formatCurrency(Math.abs(budgetDifference))}
+                  </Text>
+
+                </View>
 
               </View>
 
@@ -2477,67 +1722,43 @@ export default function ReportsScreen() {
 
           ) : (
 
-            <View
-              style={
-                styles.noBudgetContainer
-              }
-            >
+            <View style={styles.noBudgetContainer}>
 
-              <Text
+              <View
                 style={[
-                  styles.noBudgetTitle,
-                  {
-                    color:
-                      colors.text,
-                  },
+                  styles.noBudgetIcon,
+                  { backgroundColor: isDarkMode ? "#263D63" : "#EAF0FF" },
                 ]}
               >
-                No Budget Set
+
+                <MaterialCommunityIcons
+                  name="wallet-plus-outline"
+                  size={29}
+                  color={BLUE}
+                />
+
+              </View>
+
+              <Text style={[styles.noBudgetTitle, { color: colors.text }]}>
+                No Monthly Budget Set
               </Text>
 
-
-              <Text
-                style={[
-                  styles.noBudgetText,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Set a monthly budget to
-                compare your planned
-                spending with your actual
-                expenses.
+              <Text style={[styles.noBudgetText, { color: mutedText }]}>
+                Create a monthly budget to compare your planned spending with your actual expenses.
               </Text>
-
 
               <Pressable
-                style={[
-                  styles.goBudgetButton,
-                  {
-                    backgroundColor:
-                      isDarkMode
-                        ? "#1E3A8A"
-                        : "#EFF6FF",
-                  },
-                ]}
-                onPress={() =>
-                  router.push(
-                    "/budget"
-                  )
-                }
+                style={styles.manageBudgetButton}
+                onPress={() => router.push("/budget")}
               >
 
-                <Text
-                  style={[
-                    styles.goBudgetText,
-                    {
-                      color:
-                        colors.primary,
-                    },
-                  ]}
-                >
+                <MaterialCommunityIcons
+                  name="wallet-outline"
+                  size={18}
+                  color="#FFFFFF"
+                />
+
+                <Text style={styles.manageBudgetText}>
                   Manage Budget
                 </Text>
 
@@ -2550,155 +1771,109 @@ export default function ReportsScreen() {
         </View>
 
 
-        {/* =================================================
+        {/* =============================================
             REPORT DETAILS
-        ================================================= */}
+        ============================================= */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Report Details
-        </Text>
-
+        <SectionTitle
+          title="Report Details"
+          subtitle="Additional financial information"
+        />
 
         <View
           style={[
             styles.card,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
 
-          <View
-            style={
-              styles.detailRow
-            }
-          >
+          <View style={styles.detailRow}>
 
-            <Text
-              style={[
-                styles.detailLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Income transactions
-            </Text>
+            <View style={styles.detailLeft}>
 
-            <Text
-              style={[
-                styles.detailValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {
-                filteredTransactions.filter(
-                  (transaction) =>
-                    transaction.type ===
-                    "Income"
-                ).length
-              }
+              <MaterialCommunityIcons
+                name="arrow-down-circle-outline"
+                size={20}
+                color={GREEN}
+              />
+
+              <Text style={[styles.detailLabel, { color: mutedText }]}>
+                Income transactions
+              </Text>
+
+            </View>
+
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {incomeCount}
             </Text>
 
           </View>
 
+          <View style={styles.detailRow}>
 
-          <View
-            style={
-              styles.detailRow
-            }
-          >
+            <View style={styles.detailLeft}>
 
-            <Text
-              style={[
-                styles.detailLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Expense transactions
-            </Text>
+              <MaterialCommunityIcons
+                name="arrow-up-circle-outline"
+                size={20}
+                color={RED}
+              />
 
-            <Text
-              style={[
-                styles.detailValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {
-                filteredTransactions.filter(
-                  (transaction) =>
-                    transaction.type ===
-                    "Expense"
-                ).length
-              }
+              <Text style={[styles.detailLabel, { color: mutedText }]}>
+                Expense transactions
+              </Text>
+
+            </View>
+
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {expenseCount}
             </Text>
 
           </View>
 
+          <View style={styles.detailRow}>
 
-          <View
-            style={
-              styles.detailRow
-            }
-          >
+            <View style={styles.detailLeft}>
 
-            <Text
-              style={[
-                styles.detailLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Average expense
+              <MaterialCommunityIcons
+                name="calculator-variant-outline"
+                size={20}
+                color={PURPLE}
+              />
+
+              <Text style={[styles.detailLabel, { color: mutedText }]}>
+                Average expense
+              </Text>
+
+            </View>
+
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              KSh {formatCurrency(averageExpense)}
             </Text>
 
-            <Text
-              style={[
-                styles.detailValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              KSh{" "}
-              {formatCurrency(
-                filteredTransactions.filter(
-                  (transaction) =>
-                    transaction.type ===
-                    "Expense"
-                ).length > 0
-                  ? totalExpense /
-                    filteredTransactions.filter(
-                      (transaction) =>
-                        transaction.type ===
-                        "Expense"
-                    ).length
-                  : 0
-              )}
+          </View>
+
+          <View style={[styles.detailRow, styles.lastDetailRow]}>
+
+            <View style={styles.detailLeft}>
+
+              <MaterialCommunityIcons
+                name="receipt-text-outline"
+                size={20}
+                color={BLUE}
+              />
+
+              <Text style={[styles.detailLabel, { color: mutedText }]}>
+                Total transactions
+              </Text>
+
+            </View>
+
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {transactionCount}
             </Text>
 
           </View>
@@ -2706,45 +1881,34 @@ export default function ReportsScreen() {
         </View>
 
 
-        {/* =================================================
-            VIEW ALL TRANSACTIONS
-        ================================================= */}
+        {/* =============================================
+            VIEW TRANSACTIONS BUTTON
+        ============================================= */}
 
         <Pressable
-          style={[
-            styles.transactionsButton,
-            {
-              backgroundColor:
-                colors.primary,
-            },
-          ]}
-          onPress={() =>
-            router.push(
-              "/transactions"
-            )
-          }
+          style={styles.transactionsButton}
+          onPress={() => router.push("/transactions")}
         >
 
-          <Text
-            style={[
-              styles.transactionsButtonText,
-              {
-                color:
-                  colors.white,
-              },
-            ]}
-          >
+          <MaterialCommunityIcons
+            name="receipt-text-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+
+          <Text style={styles.transactionsButtonText}>
             View All Transactions
           </Text>
 
+          <MaterialCommunityIcons
+            name="arrow-right"
+            size={20}
+            color="#FFFFFF"
+          />
+
         </Pressable>
 
-
-        <View
-          style={
-            styles.bottomSpace
-          }
-        />
+        <View style={styles.bottomSpace} />
 
       </ScrollView>
 
@@ -2772,66 +1936,79 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 12,
-    fontSize: 15,
+    marginTop: 14,
+    fontSize: 14,
+    fontWeight: "500",
   },
 
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 35,
   },
 
 
-  // ===================================================
   // HEADER
-  // ===================================================
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 22,
-  },
-
-  backButtonContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
+    marginBottom: 24,
   },
 
   backButton: {
-    fontSize: 38,
-    lineHeight: 38,
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  headerSpace: {
-    width: 40,
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: 13,
   },
 
-  title: {
-    fontSize: 23,
+  headerTitle: {
+    fontSize: 22,
     fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
 
-  // ===================================================
   // PERIOD
-  // ===================================================
 
   periodCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
-    marginBottom: 24,
     borderWidth: 1,
+    marginBottom: 25,
+  },
+
+  periodHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    gap: 9,
   },
 
   periodTitle: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 12,
   },
 
   periodRow: {
@@ -2842,83 +2019,90 @@ const styles = StyleSheet.create({
 
   periodButton: {
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingVertical: 10,
+    borderRadius: 11,
   },
 
   periodButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
   },
 
 
-  // ===================================================
-  // SECTIONS
-  // ===================================================
+  // SECTION HEADINGS
+
+  sectionHeading: {
+    marginBottom: 13,
+  },
 
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
   },
 
 
-  // ===================================================
   // SUMMARY
-  // ===================================================
 
   summaryGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 27,
     gap: 10,
-    marginBottom: 26,
   },
 
   summaryCard: {
     width: "48%",
-    borderRadius: 15,
-    padding: 16,
+    borderRadius: 17,
     borderWidth: 1,
-    borderLeftWidth: 4,
+    padding: 14,
+    minHeight: 128,
+  },
+
+  summaryIcon: {
+    width: 37,
+    height: 37,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
 
   summaryLabel: {
-    fontSize: 12,
-    marginBottom: 7,
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 5,
   },
 
   summaryAmount: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
   },
 
 
-  // ===================================================
-  // CARD
-  // ===================================================
+  // GENERAL CARD
 
   card: {
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 26,
+    borderRadius: 18,
+    padding: 17,
     borderWidth: 1,
-  },
-
-  cardSubtitle: {
-    fontSize: 12,
-    marginBottom: 8,
+    marginBottom: 27,
   },
 
 
-  // ===================================================
-  // CHART LEGEND
-  // ===================================================
+  // LEGEND
 
-  chartLegend: {
+  legendRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 20,
-    marginBottom: 18,
+    marginBottom: 22,
   },
 
   legendItem: {
@@ -2927,8 +2111,8 @@ const styles = StyleSheet.create({
   },
 
   legendDot: {
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
     marginRight: 7,
   },
@@ -2939,59 +2123,54 @@ const styles = StyleSheet.create({
   },
 
 
-  // ===================================================
-  // INCOME VS EXPENSE
-  // ===================================================
+  // COMPARISON
 
   comparisonRow: {
-    marginBottom: 18,
+    marginBottom: 21,
   },
 
-  comparisonLabelRow: {
+  comparisonHeading: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 7,
+    marginBottom: 9,
   },
 
   comparisonLabel: {
     fontSize: 13,
-    fontWeight: "600",
-  },
-
-  comparisonAmount: {
-    fontSize: 13,
     fontWeight: "700",
   },
 
+  comparisonValue: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
   chartTrack: {
-    height: 14,
-    borderRadius: 7,
+    height: 12,
+    borderRadius: 8,
     overflow: "hidden",
   },
 
   chartBar: {
-    height: 14,
-    borderRadius: 7,
+    height: 12,
+    borderRadius: 8,
   },
 
 
-  // ===================================================
   // SIX MONTH CHART
-  // ===================================================
 
   sixMonthChart: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    height: 210,
+    height: 190,
     paddingTop: 10,
   },
 
   monthColumn: {
     flex: 1,
     alignItems: "center",
-    marginHorizontal: 2,
   },
 
   monthBarsArea: {
@@ -3010,255 +2189,315 @@ const styles = StyleSheet.create({
 
   monthBar: {
     width: 13,
-    minHeight: 0,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
   },
 
   monthLabel: {
     fontSize: 11,
-    marginTop: 7,
-    fontWeight: "600",
-  },
-
-  monthIncomeValue: {
-    fontSize: 8,
-    marginTop: 3,
-  },
-
-  monthExpenseValue: {
-    fontSize: 8,
-    marginTop: 1,
-  },
-
-
-  // ===================================================
-  // HIGHEST CATEGORY
-  // ===================================================
-
-  highestCategoryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  highestCategoryName: {
-    fontSize: 17,
     fontWeight: "700",
+    marginTop: 9,
+  },
+
+  chartNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: 1,
+    paddingTop: 13,
+    marginTop: 14,
+    gap: 7,
+  },
+
+  chartNoteText: {
+    fontSize: 10,
     flex: 1,
   },
 
-  highestCategoryAmount: {
-    fontSize: 15,
+
+  // EMPTY STATE
+
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 15,
+  },
+
+  emptyIcon: {
+    width: 55,
+    height: 55,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    fontSize: 12,
+    lineHeight: 19,
+  },
+
+
+  // HIGHEST CATEGORY
+
+  highestCategory: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  highestIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 11,
+  },
+
+  highestInfo: {
+    flex: 1,
+  },
+
+  highestLabel: {
+    fontSize: 10,
+    marginBottom: 5,
+  },
+
+  highestName: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  highestAmount: {
+    fontSize: 12,
     fontWeight: "800",
   },
 
 
-  // ===================================================
-  // CATEGORY
-  // ===================================================
+  // CATEGORY BREAKDOWN
 
-  categoryRow: {
-    marginBottom: 18,
+  categoryItem: {
+    marginBottom: 21,
   },
 
-  categoryHeader: {
+  categoryTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 7,
+    marginBottom: 11,
   },
 
-  categoryName: {
-    fontSize: 14,
-    fontWeight: "600",
+  categoryLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 8,
+  },
+
+  categoryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+
+  categoryNameContainer: {
     flex: 1,
   },
 
+  categoryName: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  categoryPercentage: {
+    fontSize: 10,
+    marginTop: 3,
+  },
+
   categoryAmount: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
   },
 
-  incomeCategoryAmount: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-
-  barBackground: {
-    height: 9,
-    borderRadius: 5,
+  categoryTrack: {
+    height: 8,
+    borderRadius: 8,
     overflow: "hidden",
   },
 
-  bar: {
-    height: 9,
-    borderRadius: 5,
-  },
-
-  incomeBar: {
-    height: 9,
-    borderRadius: 5,
-  },
-
-  percentageText: {
-    fontSize: 11,
-    marginTop: 4,
-    textAlign: "right",
+  categoryProgress: {
+    height: 8,
+    borderRadius: 8,
   },
 
 
-  // ===================================================
   // BUDGET
-  // ===================================================
 
   budgetHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 17,
   },
 
   budgetLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "600",
   },
 
   budgetValue: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "800",
-    marginTop: 4,
+    marginTop: 6,
   },
 
-  budgetRight: {
+  budgetPercentageContainer: {
     alignItems: "flex-end",
   },
 
   budgetPercentage: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 21,
+    fontWeight: "900",
   },
 
-  overBudgetText: {
-    fontSize: 18,
-    fontWeight: "800",
+  budgetUsed: {
+    fontSize: 10,
+    marginTop: 2,
   },
 
-  budgetSpentLabel: {
-    fontSize: 11,
-  },
-
-  budgetProgressBackground: {
-    width: "100%",
-    height: 12,
-    borderRadius: 6,
+  budgetTrack: {
+    height: 13,
+    borderRadius: 8,
     overflow: "hidden",
   },
 
   budgetProgress: {
-    height: 12,
-    borderRadius: 6,
+    height: 13,
+    borderRadius: 8,
   },
 
   budgetFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 17,
   },
 
-  budgetSpent: {
+  budgetFooterLabel: {
+    fontSize: 10,
+    marginBottom: 5,
+  },
+
+  budgetFooterValue: {
     fontSize: 12,
+    fontWeight: "800",
   },
 
-  remainingText: {
-    fontSize: 12,
-    fontWeight: "700",
+  budgetRemaining: {
+    alignItems: "flex-end",
   },
 
 
-  // ===================================================
   // NO BUDGET
-  // ===================================================
 
   noBudgetContainer: {
-    alignItems: "flex-start",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+
+  noBudgetIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 13,
   },
 
   noBudgetTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 7,
   },
 
   noBudgetText: {
-    fontSize: 13,
+    fontSize: 12,
+    textAlign: "center",
     lineHeight: 19,
-    marginTop: 6,
+    marginBottom: 17,
   },
 
-  goBudgetButton: {
-    marginTop: 12,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 9,
+  manageBudgetButton: {
+    backgroundColor: GREEN,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 
-  goBudgetText: {
-    fontSize: 13,
-    fontWeight: "700",
+  manageBudgetText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
 
-  // ===================================================
-  // DETAILS
-  // ===================================================
+  // REPORT DETAILS
 
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    alignItems: "center",
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: "#E9EEF3",
+  },
+
+  lastDetailRow: {
+    borderBottomWidth: 0,
+  },
+
+  detailLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
 
   detailLabel: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   detailValue: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
 
-  // ===================================================
-  // EMPTY
-  // ===================================================
-
-  emptyText: {
-    textAlign: "center",
-    fontSize: 13,
-    lineHeight: 19,
-  },
-
-
-  // ===================================================
   // TRANSACTIONS BUTTON
-  // ===================================================
 
   transactionsButton: {
-    height: 50,
-    borderRadius: 12,
+    height: 53,
+    backgroundColor: GREEN,
+    borderRadius: 15,
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    gap: 11,
+    marginTop: 1,
   },
 
   transactionsButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
   },
 
   bottomSpace: {
-    height: 20,
+    height: 25,
   },
 
 });

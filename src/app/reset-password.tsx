@@ -7,11 +7,14 @@ import {
     StyleSheet,
     Alert,
     ActivityIndicator,
+    Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 const API_URL =
-    "http://192.168.172.147:5000/api";
+    Platform.OS === "web"
+        ? "http://localhost:5000/api"
+        : "http://192.168.172.147:5000/api";
 
 export default function ResetPasswordScreen() {
 
